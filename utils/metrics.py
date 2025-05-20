@@ -18,10 +18,10 @@ def compute_metrics(y_true, y_pred, y_prob=None, average="binary"):
             balanced_accuracy_score(y_true, y_pred).item(), ROUND
         ),
     }
-    if y_prob is not None:
-        # for binary: pass y_prob[:,1]; for multiclass: full matrix
-        metrics["ROC_AUC"] = round(roc_auc_score(y_true, y_prob[:, 1]), ROUND)
-        metrics["LogLoss"] = round(log_loss(y_true, y_prob), ROUND)
+    # if y_prob is not None:
+    #     # for binary: pass y_prob[:,1]; for multiclass: full matrix
+    #     metrics["ROC_AUC"] = round(roc_auc_score(y_true, y_prob[:, 1]), ROUND)
+    #     metrics["LogLoss"] = round(log_loss(y_true, y_prob), ROUND)
     return metrics
 
 

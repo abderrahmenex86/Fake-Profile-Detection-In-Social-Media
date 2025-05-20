@@ -1,6 +1,6 @@
 results/
 venv/
-data/
+datasets/
 __pycache__/
 .idea/
 test_*.ipynb

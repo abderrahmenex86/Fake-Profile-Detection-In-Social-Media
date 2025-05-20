@@ -1,17 +1,18 @@
+import argparse
 import time
 from datetime import datetime
 
 import pandas as pd
 
-from models import (adaboost, knn, logistic_regression, mlp, naive_bayes,
-                    random_forest, sgd, svm, xgb)
-from optimizers import ga, pso, sa, tow
+from models import logistic_regression, naive_bayes, random_forest, svm, xgb
+from optimizers import ga, pso, tow
 from utils.data_loader import load_data
 from utils.metrics import compute_metrics
 
 
-def run_experiments():
-    dataset = "weibo"
+def run_experiments(
+    dataset="instagram", selected_models=None, selected_optimizers=None
+):
     (
         X_final_train,
         y_final_train,
@@ -23,24 +24,50 @@ def run_experiments():
         y_final_test,
     ) = load_data(dataset)
 
-    models = [
+    all_models = [
+        ("NaiveBayes", naive_bayes),
+        ("LogisticRegression", logistic_regression),
         ("SVM", svm),
-        ("SGD", sgd),
         ("RandomForest", random_forest),
         ("XGBoost", xgb),
-        ("LogisticRegression", logistic_regression),
-        ("AdaBoost", adaboost),
-        ("KNN", knn),
-        ("MLP", mlp),
-        ("NaiveBayes", naive_bayes),
+        # ("SGD", sgd),
+        # ("AdaBoost", adaboost),
+        # ("KNN", knn),
+        # ("MLP", mlp),
     ]
-    optimizers = [
+    all_optimizers = [
         ("Baseline", None),
         ("GA", ga.optimize),
         ("PSO", pso.optimize),
-        ("SA", sa.optimize),
+        # ("SA", sa.optimize),
         ("TOW", tow.optimize),
     ]
+
+    if selected_models:
+        models = [
+            (name, module) for name, module in all_models if name in selected_models
+        ]
+        if not models:
+            print(
+                f"Warning: None of the specified models {selected_models} were found. Using all models."
+            )
+            models = all_models
+    else:
+        models = all_models
+
+    if selected_optimizers:
+        if "Baseline" not in selected_optimizers:
+            selected_optimizers.append("Baseline")
+        optimizers = [
+            (name, opt) for name, opt in all_optimizers if name in selected_optimizers
+        ]
+        if not optimizers:
+            print(
+                f"Warning: None of the specified optimizers {selected_optimizers} were found. Using all optimizers."
+            )
+            optimizers = all_optimizers
+    else:
+        optimizers = all_optimizers
 
     results = []
 
@@ -123,5 +150,49 @@ def run_experiments():
     print(f"Experiments completed. Results saved to {output_file}")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Run fake profile detection experiments"
+    )
+
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="instagram",
+        help="Dataset to use (default: instagram)",
+    )
+
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        choices=[
+            "SVM",
+            "SGD",
+            "RandomForest",
+            "XGBoost",
+            "LogisticRegression",
+            "AdaBoost",
+            "KNN",
+            "MLP",
+            "NaiveBayes",
+        ],
+        help="Models to run (default: all models)",
+    )
+
+    parser.add_argument(
+        "--optimizers",
+        nargs="+",
+        choices=["Baseline", "GA", "PSO", "SA", "TOW"],
+        help="Optimizers to run (default: all optimizers)",
+    )
+
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    run_experiments()
+    args = parse_args()
+    run_experiments(
+        dataset=args.dataset,
+        selected_models=args.models,
+        selected_optimizers=args.optimizers,
+    )

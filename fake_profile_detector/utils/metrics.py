@@ -6,7 +6,7 @@ from sklearn.metrics import (accuracy_score, balanced_accuracy_score,
 ROUND = 4
 
 
-def compute_metrics(y_true, y_pred, y_prob=None, average="binary"):
+def compute_metrics(y_true, y_pred, y_prob=None, average="macro"):
     metrics = {
         "Accuracy": round(accuracy_score(y_true, y_pred), ROUND),
         "Precision": round(precision_score(y_true, y_pred, average=average), ROUND),

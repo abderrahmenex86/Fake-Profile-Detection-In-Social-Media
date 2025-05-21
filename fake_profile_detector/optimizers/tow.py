@@ -1,4 +1,5 @@
 import numpy as np
+from joblib import Parallel, delayed
 
 from ..configs.optimizer import TWO_MAX_ITER, TWO_POP_SIZE
 
@@ -53,8 +54,17 @@ def optimize(
     pop = lb + np.random.rand(TWO_POP_SIZE, dim) * (ub - lb)
     best_pop, best_score = None, -np.inf
 
+    def evaluate_single_solution(sol):
+        params = decode_solution(sol)
+        model = module.create_model(params)
+        model.fit(X_train, y_train)
+        return model.score(X_val, y_val)
+
     for _ in range(TWO_MAX_ITER):
-        fit = fitness(pop)
+        # fit = fitness(pop)
+        fit = np.array(
+            Parallel(n_jobs=4)(delayed(evaluate_single_solution)(sol) for sol in pop)
+        )
         weights = fit / (fit.sum() + 1e-16)
 
         idx = np.argmax(fit)

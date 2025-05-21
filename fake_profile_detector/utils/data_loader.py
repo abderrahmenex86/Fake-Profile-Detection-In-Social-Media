@@ -1,21 +1,22 @@
-import os
-
-import kagglehub
-import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from experiments.config import RANDOM_SEED, TEST_SIZE, VAL_SIZE
-from utils import instagram, weibo, x_fake_profile_detection
+from ..configs.general import RANDOM_SEED, TEST_SIZE
+# from ..preprocessing.instagram import main as instagram
+from ..preprocessing.weibo import main as weibo
+from ..preprocessing.x import main as x
 
 
 def load_data(name):
     assert name in ["instagram", "weibo", "x"], "Dataset not found"
+    print(name)
     if name == "instagram":
-        X, y = instagram.load_data()
+        pass
+        # X, y = instagram.load_data()
     elif name == "weibo":
         X, y, vectorizer = weibo.load_data()
     else:
-        X, y = x_fake_profile_detection.load_data()
+        print("x")
+        X, y = x.load_data()
 
     X_temp, X_final_test, y_temp, y_final_test = train_test_split(
         X, y, test_size=TEST_SIZE, random_state=RANDOM_SEED, stratify=y

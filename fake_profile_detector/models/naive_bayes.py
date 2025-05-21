@@ -10,12 +10,12 @@ def create_model(params):
 
 
 def default_params():
-    return {"var_smoothing": 1e-9}
+    return {"var_smoothing": 1e-6}
 
 
 def param_space():
     return [
-        {"name": "var_smoothing", "type": "continuous", "bounds": [1e-12, 1e-6]},
+        {"name": "var_smoothing", "type": "continuous", "bounds": [1e-6, 1e-2]},
     ]
 
 

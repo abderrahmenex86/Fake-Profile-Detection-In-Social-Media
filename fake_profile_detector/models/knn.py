@@ -9,7 +9,7 @@ def create_model(params):
         n_neighbors=int(params["n_neighbors"]),
         p=int(params["p"]),
         weights=params["weights"],
-        n_jobs=-1,
+        n_jobs=6,
     )
     return Pipeline([("scaler", StandardScaler(with_mean=False)), ("estimator", model)])
 

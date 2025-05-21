@@ -13,7 +13,7 @@ def create_model(params):
         solver="saga",
         max_iter=10000,
         random_state=RANDOM_SEED,
-        n_jobs=4,
+        n_jobs=6,
     )
     return Pipeline([("scaler", StandardScaler(with_mean=False)), ("estimator", model)])
 

@@ -13,7 +13,7 @@ def create_model(params):
         colsample_bytree=params["colsample_bytree"],
         eval_metric="logloss",
         random_state=RANDOM_SEED,
-        n_jobs=-1,
+        n_jobs=6,
         tree_method="hist",
     )
 

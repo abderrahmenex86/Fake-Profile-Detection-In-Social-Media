@@ -11,7 +11,7 @@ def create_model(params):
         min_samples_split=int(params["min_samples_split"]),
         min_samples_leaf=int(params["min_samples_leaf"]),
         random_state=RANDOM_SEED,
-        n_jobs=-1,
+        n_jobs=6,
     )
 
 

@@ -11,7 +11,7 @@ def create_model(params):
         num_leaves=int(params["num_leaves"]),
         subsample=params["subsample"],
         colsample_bytree=params["colsample_bytree"],
-        n_jobs=-1,
+        n_jobs=6,
         random_state=RANDOM_SEED,
     )
     return model

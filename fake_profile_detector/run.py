@@ -33,8 +33,8 @@ def run_experiments(dataset, selected_models=None, selected_optimizers=None):
     ]
     all_optimizers = [
         ("Baseline", None),
-        # ("GA", ga.optimize),
-        # ("PSO", pso.optimize),
+        ("GA", ga.optimize),
+        ("PSO", pso.optimize),
         ("TOW", tow.optimize),
     ]
 

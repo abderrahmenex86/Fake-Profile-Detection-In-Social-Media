@@ -7,7 +7,7 @@ from ..configs.general import RANDOM_SEED
 def create_model(params):
     return RandomForestClassifier(
         n_estimators=int(params["n_estimators"]),
-        max_depth=None if params["max_depth"] is None else int(params["max_depth"]),
+        max_depth=int(params["max_depth"]),
         min_samples_split=int(params["min_samples_split"]),
         min_samples_leaf=int(params["min_samples_leaf"]),
         random_state=RANDOM_SEED,
@@ -18,7 +18,7 @@ def create_model(params):
 def default_params():
     return {
         "n_estimators": 100,
-        "max_depth": None,
+        "max_depth": 10,
         "min_samples_split": 2,
         "min_samples_leaf": 1,
     }
@@ -29,7 +29,7 @@ def param_space():
         {
             "name": "n_estimators",
             "type": "categorical",
-            "categories": list(range(50, 501, 50)),
+            "categories": list(range(50, 301, 50)),
         },
         {
             "name": "max_depth",

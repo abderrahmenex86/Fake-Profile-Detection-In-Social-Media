@@ -1,3 +1,5 @@
+import os
+
 import joblib
 
 from ...preprocessing.weibo.normalize_chinese import normalize_chinese

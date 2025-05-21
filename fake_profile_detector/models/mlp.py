@@ -3,7 +3,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from experiments.config import RANDOM_SEED
+from ..configs.general import RANDOM_SEED
 
 
 def create_model(params):
@@ -16,7 +16,7 @@ def create_model(params):
         early_stopping=True,
         random_state=RANDOM_SEED,
     )
-    return Pipeline([('scaler', StandardScaler(with_mean=False)), ('estimator', model)])
+    return Pipeline([("scaler", StandardScaler(with_mean=False)), ("estimator", model)])
 
 
 def default_params():

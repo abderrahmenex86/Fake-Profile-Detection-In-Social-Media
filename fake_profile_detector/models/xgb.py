@@ -1,7 +1,7 @@
 from sklearn.metrics import accuracy_score
 from xgboost import XGBClassifier
 
-from experiments.config import RANDOM_SEED
+from ..configs.general import RANDOM_SEED
 
 
 def create_model(params):

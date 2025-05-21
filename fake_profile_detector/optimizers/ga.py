@@ -1,7 +1,7 @@
 import numpy as np
 from sko.GA import GA
 
-from experiments.config import GA_MAX_ITER, GA_MUTATION_RATE, GA_POP_SIZE
+from ..configs.optimizer import GA_MAX_ITER, GA_MUTATION_RATE, GA_POP_SIZE
 
 
 def optimize(module, X_train, y_train, X_val, y_val, verbose=True):

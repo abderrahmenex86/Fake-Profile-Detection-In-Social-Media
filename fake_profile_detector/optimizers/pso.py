@@ -2,8 +2,8 @@ import numpy as np
 from sklearn.model_selection import cross_val_score, train_test_split
 from sko.PSO import PSO
 
-from experiments.config import (PSO_C1, PSO_C2, PSO_MAX_ITER, PSO_POP_SIZE,
-                                PSO_W, RANDOM_SEED)
+from ..configs.optimizer import (PSO_C1, PSO_C2, PSO_MAX_ITER, PSO_POP_SIZE,
+                                 PSO_W)
 
 
 def optimize(

@@ -3,7 +3,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from experiments.config import RANDOM_SEED
+from ..configs.general import RANDOM_SEED
 
 
 def create_model(params):

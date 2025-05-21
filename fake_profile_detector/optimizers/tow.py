@@ -1,6 +1,6 @@
 import numpy as np
 
-from experiments.config import TWO_MAX_ITER, TWO_POP_SIZE
+from ..configs.optimizer import TWO_MAX_ITER, TWO_POP_SIZE
 
 
 def optimize(

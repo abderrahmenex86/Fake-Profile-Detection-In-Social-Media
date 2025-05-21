@@ -1,7 +1,7 @@
 import numpy as np
 from sko.SA import SA
 
-from experiments.config import SA_L, SA_MAX_ITER, SA_T_MAX, SA_T_MIN
+from ..configs.optimizer import SA_L, SA_MAX_ITER, SA_T_MAX, SA_T_MIN
 
 
 def optimize(

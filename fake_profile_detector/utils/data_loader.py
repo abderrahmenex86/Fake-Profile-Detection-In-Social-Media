@@ -1,7 +1,7 @@
 from sklearn.model_selection import train_test_split
 
 from ..configs.general import RANDOM_SEED, TEST_SIZE
-# from ..preprocessing.instagram import main as instagram
+from ..preprocessing.instagram import main as instagram
 from ..preprocessing.weibo import main as weibo
 from ..preprocessing.x import main as x
 
@@ -10,8 +10,7 @@ def load_data(name):
     assert name in ["instagram", "weibo", "x"], "Dataset not found"
     print(name)
     if name == "instagram":
-        pass
-        # X, y = instagram.load_data()
+        X, y = instagram.load_data()
     elif name == "weibo":
         X, y, vectorizer = weibo.load_data()
     else:

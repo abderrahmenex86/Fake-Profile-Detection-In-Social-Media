@@ -16,7 +16,7 @@ def compute_metrics(y_true, y_pred, y_prob=None, average="macro"):
     }
     if y_prob is not None:
         try:
-            metrics["ROC_AUC"] = roc_auc_score(y_true, y_prob)
+            metrics["ROC_AUC"] = compute_roc_auc(y_true, y_prob)
             metrics["LogLoss"] = log_loss(y_true, y_prob)
         except Exception as e:
             metrics["ROC_AUC"] = f"Error: {str(e)}"
@@ -25,8 +25,20 @@ def compute_metrics(y_true, y_pred, y_prob=None, average="macro"):
 
 
 def print_classification_report(y_true, y_pred, target_names=None):
-    print(classification_report(y_true, y_pred, target_names=target_names))
+    print(
+        classification_report(
+            y_true, y_pred, target_names=target_names, zero_division=0
+        )
+    )
 
 
-def compute_roc_auc(y_true, y_prob, multi_class="ovr"):
-    return roc_auc_score(y_true, y_prob, multi_class=multi_class)
+def compute_roc_auc(y_true, y_prob, multi_class="ovr", average="macro"):
+    n_classes = len(set(y_true))
+
+    if n_classes == 2:
+        if y_prob.shape[1] == 2:
+            return roc_auc_score(y_true, y_prob[:, 1])
+        else:
+            return roc_auc_score(y_true, y_prob)
+    else:
+        return roc_auc_score(y_true, y_prob, multi_class=multi_class, average=average)

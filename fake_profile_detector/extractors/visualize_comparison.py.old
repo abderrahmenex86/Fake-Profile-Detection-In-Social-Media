@@ -1,0 +1,225 @@
+import glob
+import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+from fake_profile_detector.configs.general import SAVE_DIR
+
+
+def plot_feature_comparison(results_df, save_dir=None):
+    plt.style.use("default")
+    sns.set_palette("husl")
+
+    fig = plt.figure(figsize=(20, 15))
+
+    plt.subplot(2, 3, 1)
+    accuracy_by_method = (
+        results_df.groupby("Feature_Method")["Accuracy"]
+        .max()
+        .sort_values(ascending=False)
+    )
+    bars = plt.bar(range(len(accuracy_by_method)), accuracy_by_method.values)
+    plt.title("Best Accuracy by Feature Method", fontsize=14, fontweight="bold")
+    plt.xlabel("Feature Method")
+    plt.ylabel("Accuracy")
+    plt.xticks(
+        range(len(accuracy_by_method)),
+        accuracy_by_method.index,
+        rotation=45,
+        ha="right",
+    )
+    plt.grid(axis="y", alpha=0.3)
+
+    for i, bar in enumerate(bars):
+        height = bar.get_height()
+        plt.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            height + 0.005,
+            f"{height:.3f}",
+            ha="center",
+            va="bottom",
+            fontweight="bold",
+        )
+
+    plt.subplot(2, 3, 2)
+    pivot_accuracy = results_df.pivot(
+        index="Feature_Method", columns="Classifier", values="Accuracy"
+    )
+    sns.heatmap(
+        pivot_accuracy,
+        annot=True,
+        fmt=".3f",
+        cmap="YlOrRd",
+        cbar_kws={"label": "Accuracy"},
+    )
+    plt.title("Accuracy Heatmap: Method vs Classifier", fontsize=14, fontweight="bold")
+    plt.xlabel("Classifier")
+    plt.ylabel("Feature Method")
+
+    plt.subplot(2, 3, 3)
+    feature_dims = (
+        results_df.groupby("Feature_Method")["Feature_Dimension"].first().sort_values()
+    )
+    bars = plt.bar(range(len(feature_dims)), feature_dims.values, color="skyblue")
+    plt.title("Feature Dimensions by Method", fontsize=14, fontweight="bold")
+    plt.xlabel("Feature Method")
+    plt.ylabel("Number of Features")
+    plt.xticks(range(len(feature_dims)), feature_dims.index, rotation=45, ha="right")
+    plt.yscale("log")  # Log scale due to large differences
+    plt.grid(axis="y", alpha=0.3)
+
+    for i, bar in enumerate(bars):
+        height = bar.get_height()
+        plt.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            height * 1.1,
+            f"{int(height)}",
+            ha="center",
+            va="bottom",
+            fontweight="bold",
+        )
+
+    plt.subplot(2, 3, 4)
+    avg_train_time = (
+        results_df.groupby("Feature_Method")["Training_Time"].mean().sort_values()
+    )
+    bars = plt.bar(
+        range(len(avg_train_time)), avg_train_time.values, color="lightcoral"
+    )
+    plt.title("Average Training Time by Feature Method", fontsize=14, fontweight="bold")
+    plt.xlabel("Feature Method")
+    plt.ylabel("Training Time (seconds)")
+    plt.xticks(
+        range(len(avg_train_time)), avg_train_time.index, rotation=45, ha="right"
+    )
+    plt.grid(axis="y", alpha=0.3)
+
+    for i, bar in enumerate(bars):
+        height = bar.get_height()
+        plt.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            height + max(avg_train_time.values) * 0.01,
+            f"{height:.2f}s",
+            ha="center",
+            va="bottom",
+            fontweight="bold",
+        )
+
+    plt.subplot(2, 3, 5)
+    extraction_times = (
+        results_df.groupby("Feature_Method")["Extraction_Time"].first().sort_values()
+    )
+    bars = plt.bar(
+        range(len(extraction_times)), extraction_times.values, color="lightgreen"
+    )
+    plt.title("Feature Extraction Time by Method", fontsize=14, fontweight="bold")
+    plt.xlabel("Feature Method")
+    plt.ylabel("Extraction Time (seconds)")
+    plt.xticks(
+        range(len(extraction_times)), extraction_times.index, rotation=45, ha="right"
+    )
+    plt.grid(axis="y", alpha=0.3)
+
+    for i, bar in enumerate(bars):
+        height = bar.get_height()
+        plt.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            height + max(extraction_times.values) * 0.01,
+            f"{height:.1f}s",
+            ha="center",
+            va="bottom",
+            fontweight="bold",
+        )
+
+    plt.subplot(2, 3, 6)
+    method_stats = results_df.groupby("Feature_Method").agg(
+        {"Accuracy": "max", "Training_Time": "mean", "Feature_Dimension": "first"}
+    )
+
+    scatter = plt.scatter(
+        method_stats["Training_Time"],
+        method_stats["Accuracy"],
+        s=method_stats["Feature_Dimension"] / 50,
+        alpha=0.7,
+        c=range(len(method_stats)),
+    )
+    plt.title(
+        "Accuracy vs Training Time\n(Bubble size = Feature Dimension)",
+        fontsize=14,
+        fontweight="bold",
+    )
+    plt.xlabel("Average Training Time (seconds)")
+    plt.ylabel("Best Accuracy")
+    plt.grid(True, alpha=0.3)
+
+    for i, (method, row) in enumerate(method_stats.iterrows()):
+        plt.annotate(
+            method.replace(" + PCA", "\n+PCA"),
+            (row["Training_Time"], row["Accuracy"]),
+            xytext=(5, 5),
+            textcoords="offset points",
+            fontsize=8,
+        )
+
+    plt.tight_layout()
+
+    if save_dir:
+        plt.savefig(
+            f"{save_dir}/feature_comparison_plots.png", dpi=300, bbox_inches="tight"
+        )
+        print(f"Plots saved to {save_dir}/feature_comparison_plots.png")
+
+    plt.show()
+
+
+def create_summary_table(results_df):
+    summary = (
+        results_df.groupby("Feature_Method")
+        .agg(
+            {
+                "Accuracy": ["max", "mean", "std"],
+                "Training_Time": "mean",
+                "Feature_Dimension": "first",
+                "Extraction_Time": "first",
+            }
+        )
+        .round(4)
+    )
+
+    summary.columns = [
+        "Max_Accuracy",
+        "Mean_Accuracy",
+        "Std_Accuracy",
+        "Avg_Training_Time",
+        "Feature_Dimension",
+        "Extraction_Time",
+    ]
+
+    summary = summary.sort_values("Max_Accuracy", ascending=False)
+
+    print("\nDETAILED SUMMARY TABLE")
+    print("=" * 100)
+    print(summary.to_string())
+
+    return summary
+
+
+if __name__ == "__main__":
+    results_files = glob.glob(
+        os.path.join(SAVE_DIR, "logs", "feature_comparison_*.csv")
+    )
+    if not results_files:
+        print("No feature comparison results found. Run compare_features.py first.")
+        exit(1)
+
+    latest_file = max(results_files, key=os.path.getmtime)
+    print(f"Loading results from: {latest_file}")
+
+    results_df = pd.read_csv(latest_file)
+
+    plot_feature_comparison(results_df, save_dir=os.path.dirname(latest_file))
+
+    summary = create_summary_table(results_df)

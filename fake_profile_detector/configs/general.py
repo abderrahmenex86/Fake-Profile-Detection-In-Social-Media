@@ -17,3 +17,16 @@ SAVE_DIR = base_dir = os.path.join(
     "fake_profile_detector",
     "results",
 )
+ROOT_DIR = base_dir = os.path.join(
+    os.environ["HOME"],
+    "master",
+    "src",
+    "fake_profile_detector",
+)
+FEATURES_DIR = base_dir = os.path.join(
+    os.environ["HOME"],
+    "master",
+    "src",
+    "fake_profile_detector",
+    "features",
+)

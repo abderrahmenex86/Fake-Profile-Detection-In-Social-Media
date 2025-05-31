@@ -22,7 +22,7 @@ def load_data(name):
     )
 
     X_final_train, X_opt, y_final_train, y_opt = train_test_split(
-        X_temp, y_temp, test_size=0.05, random_state=RANDOM_SEED, stratify=y_temp
+        X_temp, y_temp, test_size=0.2, random_state=RANDOM_SEED, stratify=y_temp
     )
 
     X_opt_train, X_opt_val, y_opt_train, y_opt_val = train_test_split(

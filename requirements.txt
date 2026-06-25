@@ -1,10 +1,12 @@
-datasets
+huggingface_hub
 joblib
 matplotlib
 numpy
+opencv_python
 Pillow
 scikit_learn
-scikit-image
+scikit_image
 sko
+torch
 tqdm
 xgboost

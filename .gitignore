@@ -8,3 +8,5 @@ test_*.ipynb
 test/
 models/gcforest.py
 *.csv
+artifacts/
+*.sh

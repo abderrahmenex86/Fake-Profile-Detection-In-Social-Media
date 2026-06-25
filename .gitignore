@@ -1,6 +1,7 @@
 results/
 venv/
 datasets/
+dataset/
 features/
 __pycache__/
 .idea/

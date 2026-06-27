@@ -11,3 +11,4 @@ models/gcforest.py
 *.csv
 artifacts/
 *.sh
+*.txt

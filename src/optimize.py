@@ -152,6 +152,9 @@ def run_optimization(args, X_train, y_train, run_dir):
 
         score = float(np.mean(scores))
 
+        if pbar.n >= pbar.total:
+            pbar.total += 1
+
         pbar.update(1)
         pbar.set_postfix({"Current CV Acc": f"{score:.4f}"})
         return -score

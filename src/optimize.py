@@ -8,7 +8,6 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold
 from sko.GA import GA
 from sko.PSO import PSO
-from sko.SA import SA
 from tqdm import tqdm
 
 from src.factory import build_model
@@ -16,12 +15,14 @@ from src.models import get_param_space
 
 
 def safe_float(val):
+    """Defensively handles Numpy arrays, lists, or scalars to ensure JSON serialization."""
     if isinstance(val, (list, np.ndarray)):
         return float(val[0]) if len(val) > 0 else 0.0
     return float(val)
 
 
 def run_tow(objective, dim, lb, ub, max_iter=10, pop_size=8):
+    """Custom Tug of War (TOW) implementation ported from thesis."""
     pop = lb + np.random.rand(pop_size, dim) * (ub - lb)
     best_pop, best_score = None, -np.inf
     history = []
@@ -49,6 +50,40 @@ def run_tow(objective, dim, lb, ub, max_iter=10, pop_size=8):
         pop = np.clip(new_pop, lb, ub)
 
     return best_pop, -best_score, history
+
+
+def run_sa(objective, dim, lb, ub, T_max=1.0, T_min=1e-3, L=20, max_iter=8):
+    """Deterministic Simulated Annealing guaranteed to finish in EXACTLY (1 + L * max_iter) steps."""
+    x = lb + np.random.rand(dim) * (ub - lb)
+    best_x = x.copy()
+
+    current_score = -objective(x)
+    best_score = current_score
+    history = [best_score]
+
+    T = T_max
+    alpha = (T_min / T_max) ** (1.0 / max_iter)
+
+    for _ in range(max_iter):
+        for _ in range(L):
+            step = (np.random.rand(dim) - 0.5) * 2 * (ub - lb) * T
+            x_new = np.clip(x + step, lb, ub)
+
+            score_new = -objective(x_new)
+            delta = score_new - current_score
+
+            if delta > 0 or np.exp(delta / T) > np.random.rand():
+                x = x_new.copy()
+                current_score = score_new
+
+                if current_score > best_score:
+                    best_score = current_score
+                    best_x = x.copy()
+
+        history.append(best_score)
+        T *= alpha
+
+    return best_x, -best_score, history
 
 
 def run_optimization(args, X_train, y_train, run_dir):
@@ -140,7 +175,6 @@ def run_optimization(args, X_train, y_train, run_dir):
 
                 del model
                 gc.collect()
-
                 if getattr(args, "use_cuml", False):
                     try:
                         import cupy as cp
@@ -175,16 +209,7 @@ def run_optimization(args, X_train, y_train, run_dir):
         history = [safe_float(f) for f in getattr(opt, "gbest_y_hist", [best_score])]
 
     elif args.optimizer == "sa":
-        x0 = (lb + ub) / 2
-        opt = SA(func=objective, x0=x0, T_max=1.0, T_min=1e-3, L=20, max_iter=8, lb=lb, ub=ub)
-        best_sol, best_score = opt.run()
-
-        if hasattr(opt, "best_y_history"):
-            history = [-safe_float(f) for f in opt.best_y_history]
-        elif hasattr(opt, "generation_best_Y"):
-            history = [-safe_float(f) for f in opt.generation_best_Y]
-        else:
-            history = [-safe_float(best_score)]
+        best_sol, best_score, history = run_sa(objective, dim, lb, ub, T_max=1.0, T_min=1e-3, L=20, max_iter=8)
 
     elif args.optimizer == "tow":
         best_sol, best_score, history = run_tow(objective, dim, lb, ub, max_iter=10, pop_size=8)
@@ -196,7 +221,6 @@ def run_optimization(args, X_train, y_train, run_dir):
 
     best_params = decode(best_sol)
     best_score_float = safe_float(-best_score)
-
     history = [abs(h) for h in history]
 
     tqdm.write(f"[SUCCESS] Best Accuracy: {best_score_float:.4f}")

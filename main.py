@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import gc
 import json
 import os
 
@@ -26,84 +27,63 @@ class MockArgs:
 def get_run_dir(model, feature, pca, optimizer, is_training=False, run_dir_override=None):
     if not is_training and run_dir_override:
         return run_dir_override
-
     if is_training:
         now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         pca_str = "_pca" if pca else "_nopca"
-        opt_str = f"_{optimizer }" if optimizer and optimizer != "none" else ""
-        suffix = f"{model }_{feature }{pca_str }{opt_str }"
-        run_dir = os.path.join("artifacts", f"{now }_{suffix }")
+        opt_str = f"_{optimizer}" if optimizer and optimizer != "none" else ""
+        suffix = f"{model}_{feature}{pca_str}{opt_str}"
+        run_dir = os.path.join("artifacts", f"{now}_{suffix}")
         os.makedirs(run_dir, exist_ok=True)
         return run_dir
     else:
-        if not os.path.exists("artifacts"):
-            raise ValueError("No artifacts found.")
         dirs = [
             os.path.join("artifacts", d) for d in os.listdir("artifacts") if os.path.isdir(os.path.join("artifacts", d))
         ]
-        if not dirs:
-            raise ValueError("No previous run folders found.")
         return max(dirs, key=os.path.getmtime)
 
 
-def is_already_completed(model, feature, pca, optimizer, mode):
+def get_existing_run_dir(model, feature, pca, optimizer):
     if not os.path.exists("artifacts"):
-        return False
-
+        return None
     for run_dir in os.listdir("artifacts"):
         dir_path = os.path.join("artifacts", run_dir)
-        if not os.path.isdir(dir_path):
-            continue
-
         hp_file = os.path.join(dir_path, "hyperparameters.json")
-        summary_file = os.path.join(dir_path, "optuna_summary.json")
-        history_file = os.path.join(dir_path, f"{model }_history.json")
-
         if os.path.exists(hp_file):
             try:
                 with open(hp_file, "r") as f:
                     hp = json.load(f)
-
-                match = hp.get("model") == model and hp.get("feature") == feature and hp.get("pca") == pca
-
-                if mode == "optimize":
-                    match = match and hp.get("optimizer") == optimizer and os.path.exists(summary_file)
-                elif mode == "train":
-                    match = match and os.path.exists(history_file)
-
-                if match:
-                    return True
+                if (
+                    hp.get("model") == model
+                    and hp.get("feature") == feature
+                    and hp.get("pca") == pca
+                    and hp.get("optimizer") == optimizer
+                ):
+                    return dir_path
             except Exception:
                 continue
-    return False
+    return None
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Master Thesis: Fake Profile Detection Sweep Engine")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, required=True, choices=["test", "train", "optimize", "infer"])
-
     parser.add_argument("--model", type=str, default="rf", choices=["nb", "lr", "svm", "rf", "xgb", "all"])
     parser.add_argument("--feature", type=str, default="raw", choices=["raw", "hog", "sift", "all"])
-    parser.add_argument("--pca", action="store_true", help="Apply PCA to the chosen feature")
+    parser.add_argument("--pca", action="store_true")
     parser.add_argument("--pca_components", type=int, default=500)
     parser.add_argument("--optimizer", type=str, default="ga", choices=["ga", "sa", "pso", "tow", "all"])
-
-    parser.add_argument("--use_cuml", action="store_true", help="Accelerate SVM, RF, and LR using NVIDIA RAPIDS cuML")
-
+    parser.add_argument("--use_cuml", action="store_true")
     parser.add_argument("--run_dir", type=str, default=None)
     args = parser.parse_args()
 
     os.makedirs("artifacts", exist_ok=True)
 
     if args.mode == "infer":
-        run_dir = get_run_dir(args.model, args.feature, args.pca, args.optimizer, False, args.run_dir)
-        run_inference(run_dir)
+        run_inference(get_run_dir(args.model, args.feature, args.pca, args.optimizer, False, args.run_dir))
         return
 
     models_to_run = ["nb", "lr", "svm", "rf", "xgb"] if args.model == "all" else [args.model]
-
     if args.feature == "all":
-
         features_to_run = [
             ("raw", False),
             ("raw", True),
@@ -114,9 +94,7 @@ def main():
         ]
     else:
         features_to_run = [(args.feature, args.pca)]
-
     optimizers_to_run = ["ga", "sa", "pso", "tow"] if args.optimizer == "all" else [args.optimizer]
-
     if args.mode == "test":
         optimizers_to_run = ["none"]
 
@@ -136,27 +114,33 @@ def main():
             for optimizer in optimizers_to_run:
 
                 if total_runs > 1:
-                    print(f"\n{'='*80 }")
+                    print(f"\n{'='*80}")
                     print(
-                        f"[GRID SWEEP {run_idx }/{total_runs }] Model: {model .upper ()} | Feature: {feature .upper ()}"
+                        f"[GRID SWEEP {run_idx}/{total_runs}] Model: {model.upper()} | Feature: {feature.upper()}"
                         + ("+PCA" if pca else "")
-                        + f" | Opt: {optimizer .upper ()}"
+                        + f" | Opt: {optimizer.upper()}"
                     )
-                    print(f"{'='*80 }")
-
-                if total_runs > 1 and is_already_completed(model, feature, pca, optimizer, args.mode):
-                    print(f"[INFO] Configuration detected as already completed. Safely skipping.")
-                    run_idx += 1
-                    continue
+                    print(f"{'='*80}")
 
                 run_args = MockArgs(args, model, feature, pca, optimizer)
-
                 if args.mode == "test":
                     run_test(run_args)
                     run_idx += 1
                     continue
 
-                run_dir = get_run_dir(model, feature, pca, optimizer, is_training=True)
+                existing_dir = get_existing_run_dir(model, feature, pca, optimizer)
+                run_dir = (
+                    existing_dir if existing_dir else get_run_dir(model, feature, pca, optimizer, is_training=True)
+                )
+
+                summary_file = os.path.join(run_dir, "optuna_summary.json")
+                history_file = os.path.join(run_dir, f"{model}_history.json")
+
+                if os.path.exists(history_file):
+                    print(f"[INFO] Full configuration already completed. Safely skipping.")
+                    run_idx += 1
+                    continue
+
                 with open(os.path.join(run_dir, "hyperparameters.json"), "w") as f:
                     json.dump(run_args.__dict__, f, indent=4)
 
@@ -170,9 +154,29 @@ def main():
 
                 best_params = None
                 if args.mode == "optimize":
-                    best_params = run_optimization(run_args, X_train, run_y_train, run_dir)
+                    if os.path.exists(summary_file):
+                        print("[INFO] Optimization already completed previously! Recovering parameters from JSON...")
+                        with open(summary_file, "r") as f:
+                            best_params = json.load(f)["best_params"]
+                    else:
+                        best_params = run_optimization(run_args, X_train, run_y_train, run_dir)
+                    gc.collect()
 
                 run_training(run_args, X_train, run_y_train, X_val, y_val, extractor, run_dir, best_params)
+
+                del extractor
+                del X_train
+                del X_val
+                gc.collect()
+                if getattr(args, "use_cuml", False):
+                    try:
+                        import cupy as cp
+
+                        cp.get_default_memory_pool().free_all_blocks()
+                        cp.get_default_pinned_memory_pool().free_all_blocks()
+                    except ImportError:
+                        pass
+
                 run_idx += 1
 
 

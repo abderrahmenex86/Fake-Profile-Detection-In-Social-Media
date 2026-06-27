@@ -1,8 +1,11 @@
+import gc
 import json
 import os
 
+import joblib
 import numpy as np
-from sklearn.model_selection import cross_val_score
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import StratifiedKFold
 from sko.GA import GA
 from sko.PSO import PSO
 from sko.SA import SA
@@ -94,8 +97,60 @@ def run_optimization(args, X_train, y_train, run_dir):
 
     def objective(solution):
         params = decode(solution)
-        model = build_model(args.model, **params)
-        score = cross_val_score(model, X_train, y_train, cv=3, scoring="accuracy").mean()
+
+        if getattr(args, "use_cuml", False):
+            params["use_cuml"] = True
+
+        if args.model == "xgb" and args.feature == "raw" and not getattr(args, "pca", False):
+            params["force_cpu"] = True
+
+        skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+        scores = []
+
+        with joblib.parallel_backend("sequential"):
+            for train_idx, val_idx in skf.split(X_train, y_train):
+                X_tr, X_v = X_train[train_idx], X_train[val_idx]
+                y_tr, y_v = y_train[train_idx], y_train[val_idx]
+
+                model = build_model(args.model, **params)
+
+                try:
+                    model.fit(X_tr, y_tr)
+                except Exception as e:
+                    err_msg = str(e).lower()
+                    if any(x in err_msg for x in ["memory", "alloc", "cublas", "cuda"]):
+                        del model
+                        gc.collect()
+                        if getattr(args, "use_cuml", False):
+                            try:
+                                import cupy as cp
+
+                                cp.get_default_memory_pool().free_all_blocks()
+                            except ImportError:
+                                pass
+
+                        params["force_cpu"] = True
+                        model = build_model(args.model, **params)
+                        model.fit(X_tr, y_tr)
+                    else:
+                        raise e
+
+                preds = model.predict(X_v)
+                scores.append(accuracy_score(y_v, preds))
+
+                del model
+                gc.collect()
+
+                if getattr(args, "use_cuml", False):
+                    try:
+                        import cupy as cp
+
+                        cp.get_default_memory_pool().free_all_blocks()
+                        cp.get_default_pinned_memory_pool().free_all_blocks()
+                    except ImportError:
+                        pass
+
+        score = float(np.mean(scores))
 
         pbar.update(1)
         pbar.set_postfix({"Current CV Acc": f"{score:.4f}"})

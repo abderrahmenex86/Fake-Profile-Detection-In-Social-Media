@@ -10,7 +10,7 @@ def run_test(args):
     paths, labels = load_image_paths("dataset", split="train")
 
     paths, labels = shuffle(paths, labels, random_state=42)
-    paths, labels = paths[:20], labels[:20]  # Aggressive slice
+    paths, labels = paths[:20], labels[:20]
 
     print("\n[TEST 1] Instantiating Extractor...")
     extractor = build_extractor(args)
@@ -20,7 +20,9 @@ def run_test(args):
     print(f"  -> Features Shape: {X.shape}")
 
     print("\n[TEST 3] Instantiating and Fitting Model...")
-    model = build_model(args.model)
+
+    params = {"use_cuml": getattr(args, "use_cuml", False)}
+    model = build_model(args.model, **params)
     model.fit(X, labels)
 
     print("\n[TEST 4] Predicting...")

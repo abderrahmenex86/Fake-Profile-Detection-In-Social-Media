@@ -10,7 +10,7 @@ This repository contains a machine learning pipeline designed to detect fake soc
 
 ______________________________________________________________________
 
-## 📝 Abstract & Research Questions
+## Abstract & Research Questions
 
 Most common fake profile detection systems rely on user bio texts, post histories, or network metadata. However, social media platforms increasingly restrict access to this data due to privacy concerns and API limitations. This project presents an image-based alternative that processes static profile screenshots.
 
@@ -23,7 +23,7 @@ To answer these questions, we extract visual features using three methods: Raw P
 
 ______________________________________________________________________
 
-## 🛠️ Methodology & Feature Engineering
+## Methodology & Feature Engineering
 
 To keep the pipeline efficient and interpretable, this project uses standard computer vision feature extraction instead of heavy deep learning models. The image processing workflow is structured as follows:
 
@@ -101,7 +101,7 @@ To speed up the training of our 120 different model configurations, we use GPU a
 1. At the end of every training step, the code deletes the model variables, triggers the Python Garbage Collector, and explicitly flushes the CuPy memory pool to free up GPU cache.
 1. If the GPU still runs out of memory, the training script catches the error, clears the GPU memory blocks, and automatically switches the model to train on the CPU. This ensures that the overall optimization run can finish without stopping.
 
-## 📊 Experimental Results & Discussion
+## Experimental Results & Discussion
 
 ### 2x2 Grid of Performance Visualizations
 

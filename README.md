@@ -135,7 +135,7 @@ ______________________________________________________________________
 - **The Negative Impact of PCA:** Applying Incremental PCA to compress the features down to 500 dimensions caused a consistent drop in accuracy across almost all models. For HOG features, using PCA significantly reduced accuracy and increased variance. This shows that global dimensionality reduction filters out the fine-grained visual details (such as text sharpness and small borders) that classifiers need to detect fake accounts.
 - **The Limits of SIFT:** SIFT was the weakest feature extraction method, with validation accuracies bottlenecked between **56% and 65%**. SIFT is designed to find scale-invariant keypoints in natural, textured images (like outdoor landscapes). Because social media screenshots are flat, structured, and geometric, they lack the rich physical textures that SIFT needs to perform well.
 
-## 🚀 System Workflow & CLI Commands
+## System Workflow & CLI Commands
 
 Follow this step-by-step guide to run the pipeline, optimize the classifiers, and evaluate the results.
 

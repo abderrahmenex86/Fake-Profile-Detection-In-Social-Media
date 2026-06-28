@@ -1,4 +1,4 @@
-# 🎭 Fake Profile Detection (Machine Learning)
+# Fake Profile Detection In Social Media Using Image-Based Machine Learning and Game-Inspired Metaheuristics
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.5.2-orange.svg)
@@ -6,87 +6,104 @@
 ![RAPIDS](https://img.shields.io/badge/NVIDIA-RAPIDS%20cuML-purple.svg)
 ![Metaheuristics](https://img.shields.io/badge/Optimization-Scikit--Opt-pink.svg)
 
-A professional, production-grade Machine Learning pipeline for detecting fake social media profiles from profile screenshots. Built strictly from scratch using classical machine learning, manual feature extraction, and GPU-accelerated metaheuristic hyperparameter optimization.
+This repository contains a machine learning pipeline designed to detect fake social media profiles on 𝕏. Instead of using text metadata or API-based behavioral data, this system classifies accounts using only static screenshots of their profiles. The pipeline extracts visual features and applies metaheuristic optimization algorithms to find the best hyperparameter settings for the classifiers.
 
-This project was built to explore the trade-offs between manual feature representation and classical classification models, optimized dynamically on state-of-the-art **NVIDIA Blackwell GPU (RTX 5060)** architectures.
+______________________________________________________________________
 
----
+## 📝 Abstract & Research Questions
 
-## 📝 Abstract
-Deceptive social media profiles (bots, cyborgs, and fake accounts) pose a systemic threat to digital trust, public discourse, and cybersecurity. Standard detection techniques rely heavily on textual metadata or behavioral APIs, which are easily bypassed or restricted by platform privacy controls. This project presents a professional, end-to-end framework designed to answer a central research question: **Can we accurately detect fake profiles strictly using static screenshots of their profiles?** 
+Most common fake profile detection systems rely on user bio texts, post histories, or network metadata. However, social media platforms increasingly restrict access to this data due to privacy concerns and API limitations. This project presents an image-based alternative that processes static profile screenshots.
 
-By leveraging manual computer vision feature extraction—incorporating Raw Pixel Flattening, Histogram of Oriented Gradients (HOG), and Scale-Invariant Feature Transform (SIFT) with and without Principal Component Analysis (PCA)—we map these screenshots into high-dimensional numerical spaces. We evaluate five distinct classification backends (Naive Bayes, Logistic Regression, Support Vector Machines, Random Forests, and XGBoost) optimized across a combinatorial grid of 120 configurations using four distinct metaheuristic algorithms: Genetic Algorithms (GA), Simulated Annealing (SA), Particle Swarm Optimization (PSO), and a custom-built gravitational Tug of War (TOW) optimizer. 
+Our research aims to answer two primary questions:
 
----
+1. **Can we predict fake profiles from a screenshot of a profile only?**
+1. **Can game-inspired metaheuristic algorithms outperform industry-standard optimization methods (such as Genetic Algorithms and Simulated Annealing)?**
+
+To answer these questions, we extract visual features using three methods: Raw Pixel Flattening, Histogram of Oriented Gradients (HOG), and Scale-Invariant Feature Transform (SIFT). We then train five classification algorithms (Naive Bayes, Logistic Regression, Support Vector Machines, Random Forests, and XGBoost). Finally, we compare the performance of industry-standard optimizers (Genetic Algorithms and Simulated Annealing) against swarm and game-inspired optimizers (Particle Swarm Optimization and a custom Tug of War algorithm) to see which approach yields the highest detection accuracy.
+
+______________________________________________________________________
 
 ## 🛠️ Methodology & Feature Engineering
 
-Traditional deep learning models act as "black boxes" and require massive, resource-heavy architectures. To maintain a lightweight, interpretable, and highly optimized footprint, this project relies on custom-engineered spatial and structural feature extractors:
+To keep the pipeline efficient and interpretable, this project uses standard computer vision feature extraction instead of heavy deep learning models. The image processing workflow is structured as follows:
 
 ```
-[Profile Image] ──> Resize (150x200) ──> Gray Conversion ──> [Feature Extraction] ──> StandardScaler ──> [Optional IPCA] ──> [Classifier]
-                                                                ├── Raw (90k dims)
-                                                                ├── HOG (3,168 dims)
-                                                                └── SIFT (29,952 dims)
+[Profile Image] ──> Resize (150x200) ──> Grayscale Conversion ──> [Feature Extraction] ──> StandardScaler ──> [Optional IPCA] ──> [Classifier]
+├── Raw (90k dims)
+├── HOG (3,168 dims)
+└── SIFT (29,952 dims)
 ```
 
 ### 1. Feature Representation Space
-* **Raw Pixel Flattening (RAW):** Images are resized to a standard $150 \times 200 \times 3$ RGB matrix and flattened. This establishes a baseline representation of the global color layout and spatial structure of the profile, yielding a dense **90,000-dimensional** feature vector.
-* **Histogram of Oriented Gradients (HOG):** Designed to capture edge directions, gradients, and localized shape representations. Images are converted to grayscale and processed with 9 orientation bins, $16 \times 16$ pixels per cell, and $2 \times 2$ cells per block, yielding a robust, illumination-invariant **3,168-dimensional** structural feature vector.
-* **Scale-Invariant Feature Transform (SIFT):** Captures local keypoint descriptors that are invariant to scale, rotation, and affine transformations. We extract and flatten the top 234 descriptors (each of 128 dimensions), padding with zeros where keypoint density is low, resulting in a highly stable **29,952-dimensional** localized keypoint vector.
 
-### 2. Memory-Aware Dimensionality Reduction (Incremental PCA)
-Training classifiers on a $90,000$-dimensional dense matrix of thousands of images would trigger immediate Out-of-Memory (OOM) errors on consumer hardware. To alleviate this, we implement **Incremental PCA (IPCA)** in batched passes. This compresses the feature space down to **500 principal components**, capturing the maximum explained variance while keeping the peak memory footprint strictly bounded.
+We extract three different types of visual features from the profile screenshots:
 
----
+- **Raw Pixel Flattening (RAW):** Images are resized to a height of 150 pixels and a width of 200 pixels. The RGB color matrix is then flattened into a single list of numbers. This captures the overall color layout and basic spatial structure of the profile page, resulting in a **90,000-dimensional** feature vector.
+- **Histogram of Oriented Gradients (HOG):** This method is used to capture shapes and edges while ignoring lighting differences. The screenshots are converted to grayscale and processed with 9 orientation bins, 16x16 pixels per cell, and 2x2 cells per block. This yields a **3,168-dimensional** structural feature vector.
+- **Scale-Invariant Feature Transform (SIFT):** This method captures local keypoints that do not change with scale or rotation. We extract and flatten the top 234 descriptors (each with 128 dimensions). If an image has too few keypoints, the remaining spaces are padded with zeros. This results in a **29,952-dimensional** local feature vector.
 
-## 🧭 Optimization Framework & Classifiers
+### 2. Dimensionality Reduction (Incremental PCA)
 
-Our research grid comprises **120 unique mathematical permutations** (5 Classifiers $\times$ 3 Features $\times$ 2 PCA states $\times$ 4 Metaheuristic Optimizers).
+Training machine learning models directly on a dense 90,000-dimensional matrix requires a large amount of computer memory (RAM). To prevent memory issues, we implement **Incremental PCA (IPCA)**. This algorithm processes the dataset in smaller batches and compresses the high-dimensional feature space down to **500 principal components** while preserving the most important variations in the data.
 
-### 1. Classification Backends
-* **Naive Bayes (NB):** High-speed probabilistic classifier utilizing Gaussian likelihoods.
-* **Logistic Regression (LR):** Linear decision boundary utilizing L2 regularization.
-* **Support Vector Machine (SVM):** High-dimensional hyperplane separator utilizing Radial Basis Function (RBF) and Linear kernels.
-* **Random Forest (RF):** Ensemble of bagging decision trees capturing non-linear feature interactions.
-* **XGBoost (XGB):** Advanced gradient-boosted decision trees executing sequential error correction.
+## Optimization Framework & Classifiers
 
-### 2. Metaheuristic Tuning Algorithms
-Instead of traditional Grid or Random Searches, we employ global and local optimization heuristics:
-* **Genetic Algorithm (GA):** Mimics natural selection by maintaining a population of 8 chromosomes, executing crossover, and applying a $10\%$ mutation rate over 10 generations. (88 total evaluations)
-* **Particle Swarm Optimization (PSO):** Mimics bird flocking behavior, letting 8 particles fly through the continuous hyperparameter space, adjusting their velocities based on individual and global historical bests over 10 iterations. (88 total evaluations)
-* **Simulated Annealing (SA):** A custom, fully deterministic thermodynamic-inspired local optimizer. It starts at a high temperature ($T_{\max}=1.0$) and cools down to $T_{\min}=1e-3$ over 8 steps, taking 20 random walk perturbations per step. It accepts worse solutions with a probability $P = \exp(\Delta / T)$ to successfully escape local minima. (161 total evaluations)
-* **Tug of War (TOW):** A custom gravitational-attraction optimizer. 8 agents exert "forces" on each other proportional to their fitness weights, pulling the population dynamically toward the global optimum over 10 iterations. (80 total evaluations)
+Our experimental setup tests **120 unique combinations** (5 Classifiers × 3 Feature Extraction Methods × 2 PCA Settings × 4 Metaheuristic Optimizers).
 
----
+### 1. Classification Models
 
-## ⚡ The GPU Paradigm Shift: Scikit-Learn to RAPIDS cuML
+We evaluate five different machine learning classifiers to see which one works best with our extracted image features:
 
-To accelerate our extensive 120-run grid sweep, we transitioned our CPU-bound Scikit-Learn classifiers to **NVIDIA RAPIDS cuML** on a state-of-the-art **NVIDIA RTX 5060 (Blackwell Architecture)**. This transition unlocked **$10\times$ to $50\times$ training speedups**, but required solving complex C++, compiler, and memory synchronization hurdles:
+- **Naive Bayes (NB):** A fast, probabilistic classifier that assumes features are independent.
+- **Logistic Regression (LR):** A standard linear classifier that uses L2 regularization to prevent overfitting.
+- **Support Vector Machine (SVM):** A model that finds the best boundary (hyperplane) to separate the classes in a high-dimensional space.
+- **Random Forest (RF):** An ensemble model that combines many decision trees using bagging to make stable predictions.
+- **XGBoost (XGB):** A gradient-boosted decision tree model that trains trees sequentially to correct the errors of previous trees.
 
-### 1. Joblib Multiprocessing CUDA Context Collisions
-Scikit-Learn's multi-class wrappers (like One-Vs-One) internally split classifications and execute them in parallel using `joblib.Parallel()`. However, **CUDA contexts and cuBLAS handles cannot be shared or destroyed across multiple OS processes.** Spawning parallel workers triggered immediate, uncatchable C++ driver crashes (`CUBLAS_STATUS_NOT_INITIALIZED`).
-* **Architectural Cure:** We defensively wrapped all model fitting and cross-validation calls inside `with joblib.parallel_backend('sequential'):`. This forces `joblib` to execute strictly on the main thread of the parent process, completely eliminating CUDA context fragmentation while retaining full GPU execution speed.
+### 2. Metaheuristic Optimizers
 
-### 2. The Blackwell (`sm_120`) JIT Compilation Obstacle
-Because the RTX 5060 is built on the brand-new **Blackwell architecture (Compute Capability 12.0 / `sm_120`)**, standard prebuilt CuPy wheels (`cupy-cuda12x`) do not contain pre-compiled binary images for `sm_120`. When trying to flatten and count classes on the GPU, CuPy would fail to find matching binaries and crash with a `CUDA_ERROR_NO_BINARY_FOR_GPU` error.
-* **The Cure:** We bypassed manual source compilation errors by installing NVIDIA's official PyPI-packaged runtime wheels (`nvidia-cuda-runtime-cu12`, etc.) directly into the virtual environment, pointing `LD_LIBRARY_PATH` to them, and setting **`CUPY_COMPILE_WITH_PTX=1`**. This forces CuPy to generate portable, forward-compatible assembly (PTX), which your system's driver dynamically compiles for the RTX 5060 on the fly.
+Instead of using slow grid searches or random guessing, we use metaheuristic algorithms to find the best hyperparameters for our classifiers. To answer our second research question, we compare two industry-standard optimizers against two swarm and game-inspired optimizers:
 
-### 3. Linear Kernel Platt Scaling Limitation
-NVIDIA cuML's `SVC` has a C++ level limitation: it only compiles GPU kernels for probability calibration (Platt Scaling) when utilizing the `'rbf'` kernel. When our GA/SA searches discovered that a `'linear'` kernel was optimal, training the final model with `probability=True` crashed the program.
-* **The Cure:** If `probability=True` is requested, we dynamically wrap the base `cuml.svm.SVC` in Scikit-Learn's standard **`CalibratedClassifierCV`**. This offloads the heavy SVM matrix fits to the GPU, but performs the lightweight probability calibration on the CPU, seamlessly bypassing the linear-kernel restriction.
+#### Industry-Standard Optimizers
 
-### 4. Overcoming VRAM Exhaustion via CPU Fallback
-Fitting models on raw, uncompressed 90,000-dimensional features on a full dataset of thousands of images requires massive memory allocations (a single $8000 \times 90000$ matrix uses ~2.88 GB). During multiclass training, XGBoost's GPU histogram generation or SVM's kernel calculations would frequently exceed the 8 GB VRAM limit of the RTX 5060.
-* **The Cure:** We implemented a two-pronged defensive memory-handling strategy:
-  1. At the end of every cross-validation fold, we explicitly delete the model, trigger Python's Garbage Collector, and force the CuPy memory pool to release all unused cached blocks back to the GPU OS via `cp.get_default_memory_pool().free_all_blocks()`.
-  2. We wrapped our training execution in a try-except block. If a model encounters a VRAM or C++ driver limitation, the pipeline automatically intercepts the crash, completely flushes the GPU memory, sets `force_cpu=True`, and **gracefully falls back to training on your highly robust 32 GB RAM / 36-Core CPU backend**. Your overnight sweeps are guaranteed to complete without ever crashing.
+- **Genetic Algorithm (GA):** This method simulates the process of natural evolution. It keeps a population of 8 candidate parameter settings, performs crossover between them, and applies a 10% mutation rate over 10 generations.
+- **Simulated Annealing (SA):** A local search algorithm inspired by the physical process of heating and cooling materials. It starts at a high temperature ($T\_{\\max}=1.0$) and cools down to $T\_{\\min}=1e-3$ over 8 steps. At each step, it makes random changes to the parameters and occasionally accepts worse results to avoid getting stuck in poor local solutions.
 
----
+#### Swarm & Game-Inspired Optimizers
+
+- **Particle Swarm Optimization (PSO):** A swarm-based method inspired by the movement of bird flocks. It uses 8 "particles" that travel through the parameter space, adjusting their direction based on their own historical best settings and the best overall settings found by the group.
+- **Tug of War (TOW):** A custom game-inspired algorithm based on the physical forces of a tug-of-war competition. In this method, 8 agents pull each other with a "force" proportional to how good their parameter settings are (their fitness). This dynamic pull guides the entire group toward the optimal parameters.
+
+## Scikit-Learn and Nvidia Rapids cuML: CPU VS GPU speedup
+
+To speed up the training of our 120 different model configurations, we use GPU acceleration via **NVIDIA RAPIDS cuML** and GPU-enabled **XGBoost**. Because high-dimensional image classification requires a large amount of computing resources, we implemented several key technical solutions to prevent system crashes and memory issues:
+
+### 1. Resolving Multiprocessing Conflicts
+
+- **The Problem:** Standard Scikit-Learn tools often try to split tasks across multiple CPU cores in parallel using a library called `joblib`. However, GPU computing operations cannot easily be shared or split across multiple parallel processes. Trying to do so causes immediate system crashes.
+- **The Solution:** We wrap our model training and cross-validation code inside `with joblib.parallel_backend('sequential'):`. This forces the pipeline to execute tasks sequentially on the main thread, keeping the GPU computing state stable.
+
+### 2. Handling GPU Compilation Issues
+
+- **The Problem:** Newer graphics card architectures may not have pre-compiled binary files for some GPU-accelerated mathematical libraries (like CuPy). This can cause errors when trying to process features on the GPU.
+- **The Solution:** We configure the system environment by setting the variable `CUPY_COMPILE_WITH_PTX=1`. This forces the library to compile the necessary mathematical code dynamically on the fly, ensuring compatibility with the active graphics card.
+
+### 3. Probability Calibration with Linear Kernels
+
+- **The Problem:** The GPU-accelerated Support Vector Machine (`SVC`) in the cuML library only supports probability calculation when using a non-linear (`'rbf'`) kernel. If the optimizer selects a `'linear'` kernel and the pipeline requires class probabilities, the training crashes.
+- **The Solution:** When probability calculation is required, the code wraps the base GPU model in Scikit-Learn’s `CalibratedClassifierCV`. This allows the heavy model fitting to happen on the GPU, while the lightweight probability calibration is processed on the CPU.
+
+### 4. Preventing Out-of-Memory (OOM) Crashes
+
+- **The Problem:** Training models on high-dimensional vectors (such as raw 90,000-dimensional features) requires a lot of graphics memory (VRAM). This can easily cause memory exhaustion during long runs.
+- **The Solution:** We implemented a two-step memory defense strategy:
+
+1. At the end of every training step, the code deletes the model variables, triggers the Python Garbage Collector, and explicitly flushes the CuPy memory pool to free up GPU cache.
+1. If the GPU still runs out of memory, the training script catches the error, clears the GPU memory blocks, and automatically switches the model to train on the CPU. This ensures that the overall optimization run can finish without stopping.
 
 ## 📊 Experimental Results & Discussion
 
-### 2x2 Grid of Thesis-Grade Visualizations
+### 2x2 Grid of Performance Visualizations
 
 | Global Heatmap Matrix | Classifier Robustness Boxplot |
 | :---: | :---: |
@@ -94,57 +111,95 @@ Fitting models on raw, uncompressed 90,000-dimensional features on a full datase
 | **PCA Dimensionality Impact** | **Metaheuristic Convergence Race** |
 | ![PCA Impact](docs/figs/03_pca_impact_analysis.png) | ![Convergence](docs/figs/04_optimizer_convergence_race.png) |
 
-### Key Scientific Findings
-1. **The Dominance of Raw Spatial Structure:** Classifiers trained on HOG and RAW (Flattened) features achieved the highest accuracies, with **XGBoost and Random Forest reaching peak validation scores of $98.1\%$ and $97.7\%$**, respectively. This proves that profile layouts, dominant color blocks, and structured text boundaries are incredibly strong signals for profile legitimacy.
-2. **The Destructive Nature of PCA:** Across almost all model architectures, applying Incremental PCA to compress the features down to 500 dimensions resulted in a consistent drop in validation accuracy. For HOG features, PCA significantly increased variance and lowered the median score. This mathematically proves that global dimensionality reduction filters out the highly specific, fine-grained local textures needed to distinguish real users from fake ones.
-3. **The SIFT Limitation:** SIFT was consistently the weakest feature extractor, with accuracies heavily bottlenecked between $56\%$ and $652\%$. Because profile screenshots are highly structured and flat, they lack the rich, natural scale-invariant local textures (like those found in outdoor scenes or objects) that SIFT is designed to capture.
-4. **Active Optimizer Learning:** While flat classifiers like Random Forest reached their peak performance rapidly, algorithms like Support Vector Machines (SVM) exhibited highly dynamic, climbing learning curves during metaheuristic search, proving that GA, SA, and PSO successfully navigated hyperparameter topologies to extract maximum generalization.
+______________________________________________________________________
 
----
+### Core Research Findings
+
+Our experiments provided clear answers to the two main research questions of this project:
+
+#### 1. Can you predict fake profiles from a screenshot of a profile only?
+
+**Yes.** Our results show that static profile screenshots contain strong, reliable visual patterns that can distinguish real users from fake ones. Models trained on Raw Pixel Flattening (RAW) and Histogram of Oriented Gradients (HOG) features achieved high detection rates. Specifically, **XGBoost achieved a peak validation accuracy of 98.1%**, while **Random Forest reached 97.7%**. This proves that page layouts, visual structures, and dominant color blocks are powerful indicators of account legitimacy, even without using text metadata or API access.
+
+#### 2. Can game-inspired metaheuristics outperform industry standards?
+
+**Yes, in many scenarios.** While industry-standard algorithms like the Genetic Algorithm (GA) and Simulated Annealing (SA) are highly reliable, swarm and game-inspired methods like Particle Swarm Optimization (PSO) and Tug of War (TOW) performed just as well, and sometimes better.
+
+- The game-inspired **Tug of War (TOW)** optimizer uses attraction force based on agent fitness. This approach helped it smoothly navigate the hyperparameter spaces of complex models like Support Vector Machines (SVM) and XGBoost.
+- TOW was able to find optimal hyperparameter settings with fewer total evaluations (80 evaluations) compared to Simulated Annealing (161 evaluations). This demonstrates that game-inspired heuristics can be highly efficient and effective alternative tuners.
+
+______________________________________________________________________
+
+### Additional Scientific Insights
+
+- **The Negative Impact of PCA:** Applying Incremental PCA to compress the features down to 500 dimensions caused a consistent drop in accuracy across almost all models. For HOG features, using PCA significantly reduced accuracy and increased variance. This shows that global dimensionality reduction filters out the fine-grained visual details (such as text sharpness and small borders) that classifiers need to detect fake accounts.
+- **The Limits of SIFT:** SIFT was the weakest feature extraction method, with validation accuracies bottlenecked between **56% and 65%**. SIFT is designed to find scale-invariant keypoints in natural, textured images (like outdoor landscapes). Because social media screenshots are flat, structured, and geometric, they lack the rich physical textures that SIFT needs to perform well.
 
 ## 🚀 System Workflow & CLI Commands
 
-Follow this step-by-step workflow to replicate the complete experimental lifecycle.
+Follow this step-by-step guide to run the pipeline, optimize the classifiers, and evaluate the results.
 
-### 1. Download & Structure Dataset
-Pulls the raw data from Hugging Face, bypasses metadata parsers, extracts the ZIPs, and formats the split directories:
+*(Note: In the commands below, `main.py` is the main classification script, and `report.py` is the dataset and plotting script).*
+
+### 1. Download and Format the Dataset
+
+This command downloads the raw split ZIP files directly from Hugging Face, extracts them, and structures the images into clean class directories (`BOT`, `CYBORG`, `REAL`, `VERIFIED`):
+
 ```bash
-python tools.py --mode download
+python report.py --mode download
 ```
 
-### 2. Fast Sanity Check
-Instantly tests all 30 model-feature configurations in a sequential loop utilizing an aggressive, shuffled 20-sample slice to ensure your packages and hardware work without crashing:
+### 2. Run a Sanity Check (Test Mode)
+
+Before running long optimization sweeps, you can run a quick test. This mode runs a fast training loop using a shuffled 20-sample subset to ensure your libraries and hardware settings are working correctly without crashing:
+
 ```bash
 python main.py --mode test --model all --feature all
 ```
 
-### 3. Execute the Grid Sweep (GPU-Accelerated)
-You can optimize and train specific combinations, or execute the entire 120-permutation sweep. Because we implemented a **Phase-Level Resume System**, if a run ever interrupts, it will instantly scan the `artifacts/` folder, skip completed sweeps, and pick up right where it left off.
+### 3. Run Hyperparameter Optimization and Training
 
-* **Run a highly targeted sweep** (Optimizes XGBoost across all 6 feature combinations using Particle Swarm Optimization on the GPU):
-  ```bash
-  python main.py --mode optimize --model xgb --feature all --optimizer pso --use_cuml
-  ```
-* **Run the Master Thesis Sweep** (Optimizes and trains all 120 configurations sequentially):
-  ```bash
-  python main.py --mode optimize --model all --feature all --optimizer all --use_cuml
-  ```
+You can train specific model combinations or run a sweep across all of them. The system will optimize the parameters using the selected metaheuristic algorithm and then train the final model on the full training set.
 
-### 4. Bypassing Crashes with Smart Resume
-If the final training step of a configuration ever crashed due to a prior memory limit, you do not have to re-run the 2-hour optimization. Simply run the command again. `main.py` will read the existing `optuna_summary.json`, print `[INFO] Optimization already completed previously!`, load the best parameters, and trigger the CPU fallback to finish the training pass in minutes!
+- **Optimize a single model configuration** (for example, optimizing XGBoost on HOG features using Particle Swarm Optimization with GPU acceleration):
 
-### 5. Generate Thesis Plots
-Analyzes your database of runs, cleans up outliers, extracts the most dynamic convergence curves, and exports them as vector-ready `.png` files:
 ```bash
-python tools.py --mode plot
+python main.py --mode optimize --model xgb --feature hog --optimizer pso --use_cuml
 ```
 
-### 6. Run Smart Interactive Inference
-Type `q` to exit. This script completely ignores your command-line arguments. It automatically reads `hyperparameters.json` from your latest run, dynamically reconstructs the exact feature extractor and model pipeline, and prompts you for an image path to predict:
+- **Run a complete experimental sweep** (optimizes and trains all supported models, feature extraction methods, and optimizers sequentially):
+
+```bash
+python main.py --mode optimize --model all --feature all --optimizer all --use_cuml
+```
+
+### 4. Resume an Interrupted Run
+
+If a long optimization run is interrupted (for example, due to a power outage or a system reboot), you do not need to restart from the beginning.
+
+- **Safe Skipping:** The pipeline scans the `artifacts/` directory and automatically skips configurations that have already finished training.
+- **Saving Time:** If the optimization step completed but the training step crashed, running the command again will allow the system to load the saved hyperparameters from `optuna_summary.json` and finish training using the CPU fallback in minutes.
+
+### 5. Generate Evaluation Plots
+
+Once your models have finished training, you can analyze the saved metrics in the `artifacts/` folder and generate the experimental figures (heatmap, boxplot, PCA impact, and convergence curves) under `docs/figs/`:
+
+```bash
+python report.py --mode plot
+```
+
+### 6. Test Your Own Images (Interactive Inference)
+
+You can test the trained models on arbitrary local images. By default, this mode reads the settings from your most recently saved run in `artifacts/`, loads the corresponding feature extractor and model, and starts an interactive prompt:
+
 ```bash
 python main.py --mode infer
 ```
+
+To run inference on a specific saved model from a previous run, use the `--run_dir` flag:
+
+```bash
+python main.py --mode infer --run_dir artifacts/20261025_143022_rf_hog_nopca_pso
 ```
-Path to profile image (.png) > my_test_screenshot.png
-Prediction > REAL (Confidence: 0.98)
-```
+
+*Type `q` or `exit` inside the prompt to quit.*

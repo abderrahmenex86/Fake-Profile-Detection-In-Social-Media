@@ -55,7 +55,7 @@ download step fetches the split archives and lays them out as directories.
 ## Run it
 
 ```bash
-git clone https://github.com/abderrahmenex86/master
+git clone https://github.com/abderrahmenex86/Fake-Profile-Detection-In-Social-Media
 cd Fake-Profile-Detection-In-Social-Media
 pip install -r requirements.txt
 

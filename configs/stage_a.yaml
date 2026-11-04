@@ -7,9 +7,11 @@ seeds: [0, 1, 2]
 search_train_size: 2000
 features:
   - name: hog
-    pca: false
+    pca: true
+    pca_components: 1000
   - name: sift
-    pca: false
+    pca: true
+    pca_components: 1000
   - name: raw
     pca: true
     pca_components: 1000

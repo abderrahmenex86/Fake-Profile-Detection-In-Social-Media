@@ -73,7 +73,7 @@ The MLP uses the same feature vectors as the classical models. The CNN uses 150�
 | LCA | game-based | 6 teams × 10 weeks |
 | DGO | game-based | 6 players × 10 rounds |
 
-Stage A compares all eight optimizers with the same search space per model, the same 2,000/1,000 search split, the same model seed, and 60 objective evaluations. The optimizer seed varies, and Stage A uses three seeds. Each evaluation trains a model from scratch and scores it on the validation split.
+Stage A compares all eight optimizers with the same search space per model, the same 2,000/1,000 search split, the same model seed, and 60 objective evaluations. The optimizer seed varies, and Stage A uses three seeds. Each evaluation trains a model from scratch and scores it on the validation split. Stage A uses PCA-1,000 versions of HOG, SIFT, and raw so the XGBoost fits remain tractable across all eight optimizers; the no-PCA comparisons are in Stage B.
 
 Stage B compares models with TPE using 40 evaluations and two seeds. The final MLP retrains for 30 epochs. Random Forest is constrained to `max_features` in {`sqrt`, `log2`} because a full 35k-feature forest is prohibitively slow.
 
@@ -87,7 +87,7 @@ LCA and DGO are simplified implementations. They preserve the population and eva
 2. Extract HOG, SIFT, and raw+PCA features on the official train, validation, and test splits.
 3. Build the stratified 2,000-image search split from the official train split.
 4. Fit the scaler and PCA on the search train split.
-5. Run Stage A with every optimizer for 60 evaluations and three seeds; run Stage B with TPE for 40 evaluations and two seeds.
+5. Run Stage A on PCA-1,000 features with every optimizer for 60 evaluations and three seeds; run Stage B with TPE for 40 evaluations and two seeds.
 6. Select the best configuration per feature/model by validation macro F1.
 7. Retrain the selected configuration on the full 11,000 train+validation images.
 8. Evaluate once on the official 4,000-image test split.
@@ -151,6 +151,7 @@ Figure: `fig_best_confusion.png`.
 - Stage A uses three seeds; Stage B uses two seeds. These provide descriptive stability, not formal inference. Differences smaller than the seed standard deviation should not be interpreted as real.
 - The 1,000-image official validation split is small. Optimizer ranking is therefore noisy.
 - Random Forest uses `sqrt`/`log2` feature sampling, not all 35k features, to keep the Stage B runtime tractable.
+- Stage A uses PCA-1,000 features; full no-PCA optimizer comparisons are not included. This keeps the eight-optimizer matrix within the runtime budget.
 - LCA and DGO are simplified implementations.
 - SIFT is represented by a fixed top-256 descriptor matrix, not a bag-of-visual-words or Fisher-vector encoding.
 - GPU results depend on the RAPIDS, CUDA, and PyTorch versions recorded in `results/metadata.json`.

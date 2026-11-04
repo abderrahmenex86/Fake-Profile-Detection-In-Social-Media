@@ -1,98 +1,167 @@
-# Fake Profile Detection From Profile Screenshots
+# Fake Profile Detection Benchmark
 
-Detects fake accounts on X using only a static screenshot of the profile, with
-no bio text, post history, or API access. It compares five classifiers and four
-hyperparameter optimisers across 120 combinations, including a game-inspired
-optimiser written for this study.
+A script-first research benchmark for classifying social-media profile screenshots into four account types: `BOT`, `CYBORG`, `REAL`, and `VERIFIED`.
 
-![Global performance heatmap](docs/figs/01_global_performance_heatmap.png)
+The benchmark compares handcrafted image features, classical and GPU-accelerated classifiers, a small MLP, a small CNN, and eight hyperparameter optimizers under an equal evaluation budget. It uses the official dataset splits, train-only preprocessing, and a single held-out test evaluation per final model.
 
-## The question
+## Research questions
 
-Two things were tested.
-
-1. Can a fake profile be recognised from a screenshot alone?
-2. Do game-inspired metaheuristics beat standard optimisers such as genetic
-   algorithms and simulated annealing?
-
-Both answers came back yes, with caveats covered in the limits below.
-
-## What it does
-
-- Resizes each profile screenshot to 150x200 and extracts features three ways:
-  raw pixels (90,000 dimensions), HOG (3,168), and SIFT (29,952, padded when a
-  frame has too few keypoints).
-- Compresses the raw vector with Incremental PCA to 500 components, which is
-  what makes the 90k feature space trainable on one GPU.
-- Trains Naive Bayes, logistic regression, SVM, random forest, and XGBoost, with
-  a CPU or cuML backend.
-- Optimises each combination with a genetic algorithm, simulated annealing,
-  particle swarm, or Tug of War, and records the convergence trace.
-
-## Results
-
-Three findings stand out.
-
-- Raw pixel features were the strongest signal. A screenshot carries enough
-  stable layout and colour information to separate bots, cyborgs, and real
-  accounts.
-- Tug of War reached competitive hyperparameters in 80 evaluations, against 161
-  for simulated annealing, so the game-inspired optimiser is cheaper as well as
-  competitive.
-- PCA consistently hurt accuracy. Compressing to 500 components helped memory and
-  cost accuracy almost everywhere, which suggests the discriminative signal is
-  spread across many raw dimensions.
-- SIFT was the weakest representation, with validation accuracy between 56% and
-  65%.
-
-![Classifier comparison](docs/figs/02_classifier_comparison.png)
+1. Do game-based optimizers (TOW, LCA, DGO) beat classical optimizers (Random Search, TPE, GA, PSO, SA) under the same budget?
+2. Which feature representation is stronger: HOG or SIFT?
+3. Does PCA help or hurt, and does the answer depend on the classifier?
+4. Can classical features plus a GPU-trained MLP match a small end-to-end CNN?
+5. How much of the accuracy comes from the profile template rather than account behavior?
 
 ## Dataset
 
-Three classes, downloaded through the tooling: `BOT`, `CYBORG`, and `REAL`. The
-download step fetches the split archives and lays them out as directories.
+The dataset is the public X fake-profile dataset from Hugging Face:
 
-## Run it
+- 15,000 profile screenshots
+- Four balanced classes: BOT, CYBORG, REAL, VERIFIED
+- Official splits: 10,000 train / 1,000 validation / 4,000 test
+- All images are 600×800 RGB screenshots
+
+The dataset is downloaded with `fpd download`. It is not redistributed in this repository.
+
+## Features
+
+| Feature | Configuration | Dimensions |
+|---|---|---:|
+| HOG | 450×600, 16×16 cells, 2×2 blocks, 9 bins | 34,992 |
+| SIFT | top 256 keypoints by response, 128-dim descriptors | 32,768 |
+| Raw + PCA | 150×200×3 flattened, PCA to 1,000 | 1,000 |
+
+HOG and SIFT are dimension-matched for a fair comparison. Raw pixels are used only after PCA. The CNN is the only model that consumes raw images end to end.
+
+All scalers and PCA transforms are fit on the training split only.
+
+## Models
+
+- Logistic Regression
+- Linear SVM
+- RBF SVM (PCA features only)
+- Random Forest
+- XGBoost
+- MLP with two hidden layers
+- Small CNN with three convolutional blocks
+
+The MLP consumes the same feature vectors as the classical models. The CNN consumes raw images.
+
+## Optimizers
+
+Game-based: TOW, LCA, DGO.
+
+Classical: Random Search, TPE, GA, PSO, SA.
+
+Budget: 60 objective evaluations per optimizer, 3 seeds. Population methods use six candidates over ten evaluations per generation period; SA uses 60 steps; Random Search and TPE use 60 trials.
+
+Results are reported as mean ± standard deviation across seeds, with best-so-far curves and evaluations to best/95% of best. No p-values are used.
+
+## Fair comparison
+
+- Official 10k / 1k / 4k splits.
+- Hyperparameter search on a 2,000-image stratified subset of the official train split and the official 1,000-image validation split.
+- Final models retrain on the full 10,000 train + 1,000 validation = 11,000 images.
+- The 4,000-image test split is used once per final model.
+- The same search space and evaluation budget are used for every optimizer.
+- The same model seed is used across optimizers; only the optimizer seed varies.
+- No early stopping; each evaluation uses a fixed training budget.
+
+## Quickstart
 
 ```bash
-git clone https://github.com/abderrahmenex86/Fake-Profile-Detection-In-Social-Media
-cd Fake-Profile-Detection-In-Social-Media
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 
-python tools.py --mode download
-python main.py --mode test --model all --feature all
-python main.py --mode optimize --model xgb --feature hog --optimizer pso --use_cuml
+fpd download
+fpd smoke --config configs/smoke.yaml
 ```
 
-A full sweep across every model, feature, and optimiser:
+The smoke run uses a small stratified subset, one feature, two models, and two optimizers. It validates the data, feature, optimizer, and tracking pipeline before a GPU run.
+
+## GPU run
+
+Use a RAPIDS image with cuML prebuilt, or follow the conda fallback in [docs/gpu.md](docs/gpu.md).
 
 ```bash
-python main.py --mode train --model all --feature all
+bash scripts/setup_gpu.sh
+
+fpd features --config configs/stage_a.yaml
+fpd benchmark --config configs/stage_a.yaml
+fpd benchmark --config configs/stage_b.yaml
+fpd final --config configs/final.yaml
+fpd cnn --config configs/cnn.yaml
+fpd ablation --config configs/ablation.yaml
+fpd plot --config configs/final.yaml
 ```
 
-`--use_cuml` moves training and optimisation to the GPU through RAPIDS; without
-it everything runs on CPU.
+The recommended GPU is a 24 GB RTX 3090. A 16 GB card works for the PCA and subset configurations.
 
-## How the optimisation is wired
+## Results
 
-Each classifier is trained inside the optimiser's objective, so the search sees
-real validation accuracy rather than a proxy. The four optimisers share the
-search space and the evaluation budget, which is what makes the comparison in
-the results fair. Details, including the GPU memory defences and calibration
-fixes, are in [docs/methodology.md](docs/methodology.md).
+The benchmark writes:
 
-![Optimiser convergence](docs/figs/04_optimizer_convergence_race.png)
+- `results/evaluations.csv` — every objective evaluation.
+- `results/runs.csv` — every optimizer/seed run.
+- `results/final.csv` — final test results for every feature/model.
+- `results/cnn.csv` — CNN test results.
+- `results/ablation.csv` — template-masking and brightness-baseline results.
+- `results/metadata.json` — versions, GPU, CUDA, and config.
+- `results/plots/` — convergence, heatmap, boxplot, PCA/HOG effects, cost, CNN, ablation, and confusion plots.
 
-## Limits
+The paper-style report is [docs/benchmark.md](docs/benchmark.md).
 
-- Screenshots were captured from one platform at one point in time. A layout
-  change on X would move the feature distribution.
-- The dataset size and class balance are not documented in this repository, so
-  the results are not directly comparable to published benchmarks.
-- PCA is applied to raw features only; HOG and SIFT are used at full width.
-- The dataset is not redistributed here, so a reproduction needs the same
-  download step to still work.
+## Repository layout
 
-## Stack
+```text
+src/fpd/
+├── config.py
+├── data.py
+├── features.py
+├── search_spaces.py
+├── models.py
+├── optimizers/
+├── benchmark.py
+├── final_eval.py
+├── cnn.py
+├── ablation.py
+├── tracking.py
+├── plotting.py
+└── cli.py
+configs/
+├── smoke.yaml
+├── stage_a.yaml
+├── stage_b.yaml
+├── final.yaml
+├── cnn.yaml
+└── ablation.yaml
+docs/
+├── benchmark.md
+└── gpu.md
+scripts/
+└── setup_gpu.sh
+tests/
+```
 
-Python 3.11+ · scikit-learn · XGBoost · RAPIDS cuML · SciPy · OpenCV
+## Limitations
+
+- The dataset is synthetic. Profile layout, text, badges, and template cues are highly correlated with the label. The benchmark includes a template ablation to measure this.
+- Three seeds and no formal statistical tests mean small differences should not be over-interpreted.
+- LCA and DGO are simplified implementations. They use the same budget and search space but are not bit-for-bit reproductions of the published algorithms.
+- SIFT is represented by a fixed top-256 descriptor matrix. A bag-of-visual-words representation would be a different comparison.
+- GPU results depend on the RAPIDS, CUDA, and PyTorch versions recorded in `results/metadata.json`.
+
+## Background
+
+The project started as a graduation thesis on fake-profile detection. This repository is a clean re-evaluation: it uses the fair 34,992-dim HOG, official splits, train-only preprocessing, and an equal optimizer budget. The thesis’s full-resolution HOG result is discussed in [docs/benchmark.md](docs/benchmark.md) as background, not as the benchmark result.
+
+## Citation
+
+If you use the dataset, cite:
+
+Dracewicz, W., & Sepczuk, M. (2024). Detecting Fake Accounts on Social Media Portals—The X Portal Case Study. *Electronics*, 13(13), 2542. https://doi.org/10.3390/electronics13132542
+
+## License
+
+MIT

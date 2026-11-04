@@ -1,0 +1,21 @@
+data_dir: ~/downloads/datasets/x_fake_profile_detection
+cache_dir: ~/downloads/datasets/x_fake_profile_detection/features
+results_dir: results
+backend: gpu
+seed: 1337
+mlp_epochs: 30
+features:
+  - name: hog
+    pca: false
+  - name: hog
+    pca: true
+    pca_components: 1000
+  - name: sift
+    pca: false
+  - name: sift
+    pca: true
+    pca_components: 1000
+  - name: raw
+    pca: true
+    pca_components: 1000
+models: [logreg, linear_svm, rbf_svm, rf, xgb, mlp]

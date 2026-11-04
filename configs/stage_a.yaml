@@ -1,0 +1,17 @@
+data_dir: ~/downloads/datasets/x_fake_profile_detection
+cache_dir: ~/downloads/datasets/x_fake_profile_detection/features
+results_dir: results
+backend: gpu
+budget: 60
+seeds: [0, 1, 2]
+search_train_size: 2000
+features:
+  - name: hog
+    pca: false
+  - name: sift
+    pca: false
+  - name: raw
+    pca: true
+    pca_components: 1000
+models: [logreg, xgb]
+optimizers: [random, tpe, ga, pso, sa, tow, lca, dgo]

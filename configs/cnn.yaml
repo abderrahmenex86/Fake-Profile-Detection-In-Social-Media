@@ -1,0 +1,9 @@
+data_dir: ~/downloads/datasets/x_fake_profile_detection
+cache_dir: ~/downloads/datasets/x_fake_profile_detection/features
+results_dir: results
+backend: gpu
+seeds: [0, 1, 2]
+cnn_epochs: 20
+cnn_batch_size: 64
+cnn_lr: 0.001
+cnn_weight_decay: 0.0001

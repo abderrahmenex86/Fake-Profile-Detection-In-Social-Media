@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this benchmark, cite the dataset paper and this repository."
+title: "Fake Profile Detection Benchmark"
+type: software
+authors:
+  - family-names: Benounene
+    given-names: Abdelrahmane
+license: MIT
+references:
+  - type: article
+    title: "Detecting Fake Accounts on Social Media Portals—The X Portal Case Study"
+    authors:
+      - family-names: Dracewicz
+        given-names: Weronika
+      - family-names: Sepczuk
+        given-names: Mariusz
+    journal: Electronics
+    volume: 13
+    issue: 13
+    start: 2542
+    year: 2024
+    doi: 10.3390/electronics13132542

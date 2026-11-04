@@ -1,0 +1,10 @@
+data_dir: ~/downloads/datasets/x_fake_profile_detection
+cache_dir: ~/downloads/datasets/x_fake_profile_detection/features
+results_dir: results
+backend: gpu
+seeds: [0, 1, 2]
+search_train_size: 2000
+limit_train: 2000
+limit_val: 1000
+limit_test: 4000
+ablation_variants: [full, header, bottom_mask, brightness]

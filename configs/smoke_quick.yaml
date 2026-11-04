@@ -1,0 +1,15 @@
+data_dir: ~/downloads/datasets/x_fake_profile_detection
+cache_dir: ~/downloads/datasets/x_fake_profile_detection/features_smoke
+results_dir: results/smoke_quick
+backend: cpu
+budget: 2
+seeds: [0]
+search_train_size: 200
+limit_train: 200
+limit_val: 100
+limit_test: 200
+features:
+  - name: hog
+    pca: false
+models: [logreg]
+optimizers: [random]

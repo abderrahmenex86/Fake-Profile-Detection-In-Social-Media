@@ -1,0 +1,13 @@
+data_dir: ~/downloads/datasets/x_fake_profile_detection
+cache_dir: ~/downloads/datasets/x_fake_profile_detection/features_smoke
+results_dir: results/smoke
+backend: cpu
+seed: 1337
+mlp_epochs: 1
+limit_train: 200
+limit_val: 100
+limit_test: 200
+features:
+  - name: hog
+    pca: false
+models: [logreg, xgb]

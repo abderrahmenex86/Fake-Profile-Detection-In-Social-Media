@@ -2,8 +2,8 @@ data_dir: ~/downloads/datasets/x_fake_profile_detection
 cache_dir: ~/downloads/datasets/x_fake_profile_detection/features
 results_dir: results
 backend: gpu
-budget: 40
-seeds: [0, 1]
+budget: 60
+seeds: [0, 1, 2]
 search_train_size: 2000
 mlp_epochs: 10
 features:

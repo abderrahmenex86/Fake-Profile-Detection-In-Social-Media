@@ -1,0 +1,19 @@
+data_dir: ~/downloads/datasets/x_fake_profile_detection
+cache_dir: ~/downloads/datasets/x_fake_profile_detection/features_smoke
+results_dir: results/smoke_models
+backend: gpu
+budget: 1
+seeds: [0]
+search_train_size: 200
+limit_train: 200
+limit_val: 100
+limit_test: 200
+mlp_epochs: 1
+features:
+  - name: hog
+    pca: false
+  - name: hog
+    pca: true
+    pca_components: 1000
+models: [logreg, linear_svm, rbf_svm, rf, xgb, mlp]
+optimizers: [random]

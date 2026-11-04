@@ -14,7 +14,7 @@ SPACES = {
     "rf": [
         {"name": "n_estimators", "type": "cat", "choices": [100, 200, 300]},
         {"name": "max_depth", "type": "cat", "choices": [5, 10, 20, None]},
-        {"name": "max_features", "type": "cat", "choices": ["sqrt", "log2", 1.0]},
+        {"name": "max_features", "type": "cat", "choices": ["sqrt", "log2"]},
     ],
     "xgb": [
         {"name": "n_estimators", "type": "cat", "choices": [50, 100, 200]},

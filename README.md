@@ -53,7 +53,7 @@ Game-based: TOW, LCA, DGO.
 
 Classical: Random Search, TPE, GA, PSO, SA.
 
-Budget: 60 objective evaluations per optimizer, 3 seeds. Population methods use six candidates over ten evaluations per generation period; SA uses 60 steps; Random Search and TPE use 60 trials.
+Stage A compares all eight optimizers with 60 evaluations and 3 seeds. Population methods use six candidates over ten evaluations per generation period; SA uses 60 steps; Random Search and TPE use 60 trials. Stage B compares models with TPE using 40 evaluations and 2 seeds; the final MLP retrains for 30 epochs.
 
 Results are reported as mean ± standard deviation across seeds, with best-so-far curves and evaluations to best/95% of best. No p-values are used.
 
@@ -63,7 +63,9 @@ Results are reported as mean ± standard deviation across seeds, with best-so-fa
 - Hyperparameter search on a 2,000-image stratified subset of the official train split and the official 1,000-image validation split.
 - Final models retrain on the full 10,000 train + 1,000 validation = 11,000 images.
 - The 4,000-image test split is used once per final model.
-- The same search space and evaluation budget are used for every optimizer.
+- Stage A uses the same search space and 60-evaluation budget for every optimizer.
+- Stage B uses TPE with 40 evaluations and 2 seeds; the final MLP retrains for 30 epochs.
+- Random Forest is constrained to `max_features` in {`sqrt`, `log2`} to keep 35k-feature fits tractable.
 - The same model seed is used across optimizers; only the optimizer seed varies.
 - No early stopping; each evaluation uses a fixed training budget.
 

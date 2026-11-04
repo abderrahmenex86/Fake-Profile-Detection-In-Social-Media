@@ -92,6 +92,22 @@ pip install -e . --no-deps
 
 For CUDA 12.4 hosts, use the matching RAPIDS release and CUDA version, for example `rapids=24.06` and `cuda-version=12.4`.
 
+## Blackwell note
+
+The RTX PRO 4000 Blackwell (compute capability 12.0) is not supported by RAPIDS 24.10 / CUDA 12.5. CuPy fails with an NVRTC invalid-architecture error and cuML cannot compile kernels.
+
+For Blackwell, use RAPIDS 26.10 / CUDA 13:
+
+```bash
+mamba create -y -n fpd -c rapidsai -c conda-forge -c nvidia \
+  "cuml=26.10.00" "cuda-version=13.0" python=3.11
+/opt/conda/envs/fpd/bin/pip install "cupy-cuda13x[ctk]==14.2.0"
+/opt/conda/envs/fpd/bin/pip install torch --index-url https://download.pytorch.org/whl/cu130
+/opt/conda/envs/fpd/bin/pip install xgboost optuna scikit-image opencv-python-headless nvidia-ml-py psutil pandas matplotlib seaborn huggingface-hub pyyaml tqdm joblib pillow
+```
+
+The CuPy `[ctk]` extra supplies the CUDA headers. A duplicate `cupy` warning is harmless if the cuML smoke passes. The 3090 path with RAPIDS 24.10 is simpler and remains the recommended setup when available.
+
 ## Notes
 
 - If XGBoost was installed from a CPU-only wheel, `device="cuda"` fails. The smoke check reports this; install the GPU build or use the conda `py-xgboost-gpu` package.

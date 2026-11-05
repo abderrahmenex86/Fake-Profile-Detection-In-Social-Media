@@ -21,6 +21,8 @@ Four-class image classifier for social-media profile screenshots: `BOT`, `CYBORG
 
 This is the best accuracy/cost model from the [fake-profile detection benchmark](https://github.com/abderrahmenex86/Fake-Profile-Detection-In-Social-Media). It classifies a screenshot using HOG features and a small gradient-boosted tree ensemble. No neural network, no OCR, no metadata.
 
+Try it at **[fpd.abderrahmene.me](https://fpd.abderrahmene.me)**, which runs this artifact in the browser.
+
 ## Results
 
 Official 4,000-image test split of the X fake-profile dataset. The exported artifact was retrained on CPU from the 11,000 train+validation images; the reference row is the same configuration trained on a GPU in the benchmark run.

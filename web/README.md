@@ -1,5 +1,7 @@
 # Browser demo
 
+Live at <https://fpd.abderrahmene.me>, deployed on Vercel.
+
 A static site that runs the benchmark's best model entirely in the browser: HOG features plus the 200-tree XGBoost ensemble, no server, no upload.
 
 ```text
@@ -60,6 +62,8 @@ On 250 test images: label agreement 250/250, mean feature difference 1.4e-5, max
 ## Deploy
 
 Any static host works, because there is no backend. Keep the directory structure.
+
+**Vercel** — the production deployment. Import the repo, set the root directory to `web`, framework preset `Other`, no build command, then add the `fpd.abderrahmene.me` domain and a `fpd` CNAME to `cname.vercel-dns.com` at the registrar.
 
 **Cloudflare Pages** — free, no build step:
 

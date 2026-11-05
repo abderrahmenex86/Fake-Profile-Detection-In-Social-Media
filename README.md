@@ -235,7 +235,7 @@ python scripts/upload_model.py --repo-id <user>/<model-name>
 
 ![Browser demo](docs/web-demo.png)
 
-[`web/`](web) is a static site that runs the same model client-side: no server, no upload, about 54 ms per screenshot in Chromium. It reimplements the preprocessing in JavaScript (OpenCV-compatible area resize, grayscale, skimage-compatible HOG) and walks the 200 exported trees directly.
+Live at **[fpd.abderrahmene.me](https://fpd.abderrahmene.me)**. [`web/`](web) is a static site that runs the same model client-side: no server, no upload, about 54 ms per screenshot in Chromium. It reimplements the preprocessing in JavaScript (OpenCV-compatible area resize, grayscale, skimage-compatible HOG) and walks the 200 exported trees directly.
 
 On 250 held-out test images it agrees with the Python pipeline on **250/250 labels**, with a mean feature difference of 1.4e-5.
 

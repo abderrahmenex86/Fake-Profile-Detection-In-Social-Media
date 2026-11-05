@@ -4,6 +4,8 @@ A script-first research benchmark for classifying social-media profile screensho
 
 The benchmark compares handcrafted image features, classical and GPU-accelerated classifiers, a small MLP, a small CNN, and eight hyperparameter optimizers under an equal evaluation budget. It uses the official dataset splits, train-only preprocessing, and a single held-out test evaluation per final model.
 
+**Best result:** HOG no-PCA + XGBoost reaches **99.35% test macro F1** at 8.8s train time and 0.19 MB. The small CNN reaches **98.07% ± 0.44** at roughly 140× the training cost.
+
 ## Research questions
 
 1. Do game-based optimizers (TOW, LCA, DGO) beat classical optimizers (Random Search, TPE, GA, PSO, SA) under the same budget?

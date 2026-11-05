@@ -4,6 +4,8 @@
 
 This report evaluates image-based fake-profile detection on the X profile dataset. It compares HOG and SIFT features, PCA and no PCA, classical and GPU-accelerated classifiers, a small MLP, a small CNN, and eight hyperparameter optimizers under an equal evaluation budget. The protocol uses the official dataset splits, train-only preprocessing, and a single held-out test evaluation per final model.
 
+HOG no-PCA with XGBoost reaches **99.35% test macro F1** at 8.8s train time and 0.19 MB. SIFT is far weaker (40.27% no-PCA, 33.73% with PCA). No optimizer clearly wins. The small CNN reaches 98.07% ± 0.44 at roughly 140× the training cost of HOG + XGBoost.
+
 ## 1. Introduction
 
 The benchmark answers five questions:
@@ -262,7 +264,7 @@ The model makes 26 errors out of 4,000. The remaining errors are CYBORG→REAL a
 
 ## 10. Conclusion
 
-No game-based optimizer beat the classical baselines. TPE, PSO, and LCA have the highest Stage A means, but the spread between all eight optimizers is under 0.5 points. TOW reaches 95% of its best score in the fewest evaluations (1.39), yet its final mean is slightly lower than TPE’s. The optimizer choice is not the dominant factor in this benchmark.
+No game-based optimizer beat the strongest classical baselines. TPE and PSO have the highest Stage A means, with LCA third; the spread between all eight optimizers is under 0.5 points. TOW reaches 95% of its best score in the fewest evaluations (1.39), yet its final mean is slightly lower than TPE’s. The optimizer choice is not the dominant factor in this benchmark.
 
 HOG is decisively stronger than SIFT. HOG no-PCA reaches 0.9935 test macro F1 with XGBoost; SIFT no-PCA reaches 0.4027. With PCA, HOG is 0.9815 and SIFT is 0.3373. The SIFT result is far below the thesis’s SIFT numbers and is treated as an open issue; the fixed top-256 descriptor representation is the likely cause.
 

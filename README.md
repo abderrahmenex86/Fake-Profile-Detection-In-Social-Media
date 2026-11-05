@@ -269,8 +269,6 @@ The project started as a graduation thesis on fake-profile detection. This repos
 
 ## Citation
 
-If you use the dataset, cite:
-
 Dracewicz, W., & Sepczuk, M. (2024). Detecting Fake Accounts on Social Media Portals—The X Portal Case Study. *Electronics*, 13(13), 2542. https://doi.org/10.3390/electronics13132542
 
 ## License

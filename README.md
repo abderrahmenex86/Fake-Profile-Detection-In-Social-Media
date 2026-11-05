@@ -189,6 +189,8 @@ The SIFT rows above use the benchmark’s fixed top-256-by-response vector. A co
 | Top 256 by response (benchmark) | 0.3265 | 0.3117 |
 | Bag of visual words, 256 clusters | 0.8566 | **0.9143** |
 
+The diagnostic uses a fixed 2k training subset, so compare rows within the table. The main SIFT rows above use the full 11k training and TPE.
+
 BoVW SIFT reaches **0.9143** test macro F1 with XGBoost, competitive with raw+PCA and far above the fixed vector. The main SIFT row is a representation limitation, not SIFT’s ceiling.
 
 ![SIFT investigation](results/plots/fig_sift_investigation.png)

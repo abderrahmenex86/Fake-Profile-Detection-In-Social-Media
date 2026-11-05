@@ -6,6 +6,8 @@ The benchmark compares handcrafted image features, classical and GPU-accelerated
 
 **Best result:** HOG no-PCA + XGBoost reaches **99.35% test macro F1** at 8.8s train time and 0.19 MB. The small CNN reaches **98.07% ± 0.44** at roughly 140× the training cost.
 
+The accuracy reproduces on this dataset, but most of it comes from the synthetic profile template, and the game-based optimizers show no advantage over random search. Those findings are spelled out in [What the thesis tested](#what-the-thesis-tested-and-what-it-showed).
+
 ## Research questions
 
 1. Do game-based optimizers (TOW, LCA, DGO) beat classical optimizers (Random Search, TPE, GA, PSO, SA) under the same budget?
@@ -243,6 +245,32 @@ make web   # serves web/ on http://localhost:8799
 
 Any static host works. [web/README.md](web/README.md) documents Cloudflare Pages, GitHub Pages, and Hugging Face static Space deployments.
 
+## What the thesis tested, and what it showed
+
+The project began as a graduation thesis. The approach was novel in combination: full-resolution HOG descriptors on profile screenshots, classical classifiers, and game-based metaheuristic optimizers (TOW, LCA, DGO) for hyperparameter search. It reported near-perfect accuracy.
+
+This repository re-ran the idea under controlled conditions. The accuracy reproduces, but the evidence does not support the interpretation that motivated it. The novel component, game-based optimization, produces no measurable gain, and the accuracy comes mostly from the synthetic template rather than from a signal that would transfer to real accounts.
+
+The shortcomings, roughly in order of how much they matter:
+
+1. **Most of the signal is the template, not the account.** Masking one template region costs 6–7 points but still leaves about 92% test macro F1, so the class is largely encoded in layout, badges, and rendering. The same screenshot re-encoded as WebP, or resized up and back down, flips a confident BOT (0.999) to CYBORG (0.898). A classifier that changes its answer under compression has no usable invariance for real screenshots, which are re-rendered by whatever browser and display the user has.
+
+2. **The novel contribution does not hold up.** The eight optimizers span 0.45 points of mean validation macro F1 (0.7496–0.7541) against a 30-point spread across feature and model choices. TOW reaches 95% of its best score in the fewest evaluations (1.39), but its final mean is below TPE, PSO, and LCA. On this evidence, game-based search is a different way to spend a budget, not a better one.
+
+3. **There is no transfer evidence.** Every number is measured on one synthetic dataset with the same generator and template. No real X profile was scored, and no second dataset was used. The compression and resampling result in point 1 is the only cross-condition probe, and it already moves the answer; a live profile rendered by a different browser would sit further out of distribution.
+
+4. **The features carry no account behavior.** HOG sees pixels. It does not see follower graphs, posting cadence, account age, links, or text history, which is where fake-account detection usually finds signal. The classes (`BOT`, `CYBORG`, `REAL`, `VERIFIED`) are dataset labels; `VERIFIED` is a platform state, and `CYBORG` is not an operational category anyone agrees on.
+
+5. **The data is synthetic, balanced, and small.** 15,000 generated screenshots, 25% per class, 600×800. Real prevalence is far lower than 25%. At 99.3% recall and 99.3% specificity, a population with 1% fakes yields about 59% precision, so the balanced test score overstates field performance by a wide margin.
+
+6. **The evaluation is descriptive.** Three seeds, no confidence intervals or tests, one test evaluation per final model, and a model selected by validation score. Optimizer ranks come from a 1,000-image validation split, which is small enough that a 0.45-point spread is noise.
+
+7. **Several comparisons are not perfectly like-for-like.** Stage A tunes on PCA-1,000 features, Random Forest samples `sqrt`/`log2` features rather than all 35k, the MLP searches at 10 epochs and trains at 30, and LCA/DGO are simplified reimplementations. The main SIFT rows use a weak fixed descriptor, which the follow-up shows is a representation artifact (0.9143 with BoVW).
+
+8. **The deployment story is thin.** No calibration, no threshold analysis, no false-positive cost, and no dark-mode, localization, or layout-version coverage. The model has one output and no abstain option, which is the wrong shape for a moderation decision.
+
+What survives is still useful: a reproducible harness, a clear accuracy/cost comparison across features and models, a negative result about game-based optimizers, and a measurement of how much of the accuracy is template. That is a legitimate contribution. It is not the contribution the thesis claimed.
+
 ## Artifacts
 
 - `results/evaluations.csv` — every objective evaluation.
@@ -309,20 +337,14 @@ scripts/
 tests/
 ```
 
-## Limitations
+## Technical limitations
 
-- The dataset is synthetic. Profile layout, text, badges, and template cues are highly correlated with the label. The template ablation shows a 6–7 point drop when one region is masked, but the model still reaches ~92%, so the template is not the whole signal.
 - The main benchmark’s fixed top-256 SIFT vector is weak: 40.27% no-PCA / 33.73% PCA. A controlled follow-up reaches 64.29% with the thesis-style first-234 descriptors and **91.43%** with a 256-word BoVW. Treat the main SIFT rows as a representation limitation, not SIFT’s ceiling.
-- No optimizer clearly wins. The spread between optimizers is under 0.5 points, while the spread across feature/model configurations is about 30 points. Three seeds and no formal tests mean small differences should not be over-interpreted.
 - Stage A uses PCA-1,000 features to keep the eight-optimizer comparison tractable; no-PCA comparisons are in Stage B. Stage B uses three seeds; the MLP search uses 10 epochs while the final MLP uses 30.
 - Random Forest uses `sqrt`/`log2` feature sampling, not all 35k features, to keep the high-dimensional fits tractable.
 - LCA and DGO are simplified implementations. They use the same budget and search space but are not bit-for-bit reproductions of the published algorithms.
-- GPU results depend on the RAPIDS, CUDA, and PyTorch versions recorded in `results/metadata.json`. The completed run used an RTX PRO 4000 Blackwell with RAPIDS 26.10 / CUDA 13.
+- GPU results depend on the RAPIDS version recorded in `results/metadata.json`. The completed run used an RTX PRO 4000 Blackwell with RAPIDS 26.10 / CUDA 13. XGBoost on 32k-dimensional no-PCA features can exceed 24 GB of VRAM, so the pipeline frees the CuPy pools, uses `max_bin=64`, and falls back to CPU on out-of-memory.
 - The exported model in `models/hog_xgb` was retrained on CPU with a different XGBoost build, so it scores 0.9928 test macro F1 instead of the 0.9935 in `results/final.csv`.
-
-## Background
-
-The project started as a graduation thesis on fake-profile detection. This repository is a clean re-evaluation: it uses the fair 34,992-dim HOG, official splits, train-only preprocessing, and an equal optimizer budget. The thesis’s full-resolution HOG result is discussed in [docs/benchmark.md](docs/benchmark.md) as background, not as the benchmark result.
 
 ## Citation
 

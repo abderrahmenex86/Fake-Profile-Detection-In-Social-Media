@@ -264,6 +264,8 @@ The model makes 26 errors out of 4,000. The remaining errors are CYBORG→REAL a
 ## 9. Threats to validity
 
 - The dataset is synthetic. Layout, text, badges, and template cues are highly correlated with the label. The template ablation measures this but does not eliminate it.
+- No cross-domain test was run. All results come from one generator and one template. The browser demo shows the sensitivity this implies: one test image moves from BOT 0.999 to CYBORG 0.898 after a WebP re-encode or a resize round trip. Live screenshots are re-rendered by the user's browser and display, so this is a first-order limitation rather than a footnote.
+- The features are pixels only. Follower graphs, posting cadence, account age, links, and text history are not represented, so the benchmark cannot say anything about behavior-based detection.
 - Both stages use three seeds. The Stage B MLP search uses 10 epochs, while the final MLP uses 30. These provide descriptive stability, not formal inference. Differences smaller than the seed standard deviation should not be interpreted as real.
 - The 1,000-image official validation split is small. Optimizer ranking is therefore noisy.
 - Random Forest uses `sqrt`/`log2` feature sampling, not all 35k features, to keep the Stage B runtime tractable.
@@ -287,6 +289,14 @@ The small CNN reaches 0.9807 ± 0.0044 test macro F1. It is competitive, but HOG
 The template ablation shows a 6–7 point drop when one region is masked, but the model still reaches ~92%. Trivial brightness and edge statistics are near chance (0.52–0.57). The profile template matters, but it is not the whole signal.
 
 Overall, HOG plus a gradient-boosted tree ensemble is the best accuracy/cost tradeoff in this benchmark. PCA is useful for cheap linear models. Game-based optimizers are competitive but not superior. SIFT needs a better encoding before any conclusion about the representation itself. All results are descriptive: three seeds, no p-values, and a final model selected on validation before a single test evaluation.
+
+### 10.1 Assessment
+
+The thesis proposed a novel combination: full-resolution HOG on profile screenshots, classical classifiers, and game-based metaheuristic search. The accuracy reproduces on this dataset, and the accuracy/cost ranking across features and models is stable enough to be useful. The novel component is not supported. Eight optimizers span 0.45 points of mean validation macro F1, against a 30-point spread across feature and model choices; TOW reaches 95% of its best score fastest but does not finish first.
+
+The strongest finding is not the accuracy. It is the template ablation, which shows that 6–7 points of test macro F1 come from a single template region, and the compression probe, which shows that a confident prediction can change after a lossless-to-lossy re-encode or a resize round trip. A classifier with that sensitivity is measuring rasterization as much as account type.
+
+What remains is a reproducible harness, a controlled optimizer comparison, a measured template effect, and a negative result. That is a legitimate benchmark contribution, but it should not be read as evidence that fake-profile detection from screenshots works outside this synthetic dataset.
 
 ## 11. Reproducibility
 

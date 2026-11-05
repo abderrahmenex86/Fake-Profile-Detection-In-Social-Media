@@ -37,6 +37,16 @@ HOG and SIFT are dimension-matched for a fair comparison. Raw pixels are used on
 
 All scalers and PCA transforms are fit on the training split only.
 
+## What the features see
+
+![HOG, SIFT, and raw feature example](results/plots/fig_features_example.png)
+
+An example `REAL` profile screenshot and what each extractor produces:
+
+- **HOG** summarizes gradient orientation on a 16×16 cell grid with 2×2 blocks. It highlights edges, text blocks, avatar boundaries, and the overall layout. This is the representation that performs best.
+- **SIFT** detects local keypoints and describes each patch with a 128-dimensional descriptor; the benchmark keeps the top 256 by response. It is sparse and local, so it often misses the global page layout. That is visible in the figure: keypoints cluster on text and avatar edges.
+- **Raw pixels** are the resized 150×200 RGB image, flattened to 90,000 values and compressed with PCA. It preserves color and coarse layout but is expensive without dimensionality reduction.
+
 ## Models
 
 - Logistic Regression

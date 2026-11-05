@@ -1,4 +1,4 @@
-import gc
+import csv
 import json
 import time
 from pathlib import Path
@@ -13,6 +13,7 @@ from .optimizers import OPTIMIZERS
 from .search_spaces import SPACES, Space
 from .tracking import (
     append_row,
+    free_gpu_memory,
     gpu_used_mb,
     inference_ms,
     metrics,
@@ -79,6 +80,7 @@ def _run_one(config, label, model_name, optimizer_name, seed, search_x, search_y
 
     def objective(params):
         reset_torch_peak()
+        free_gpu_memory()
         model = build_model(
             model_name,
             params,
@@ -89,7 +91,26 @@ def _run_one(config, label, model_name, optimizer_name, seed, search_x, search_y
             mlp_batch_size=config["mlp_batch_size"],
         )
         start = time.perf_counter()
-        model.fit(search_x, search_y)
+        try:
+            model.fit(search_x, search_y)
+        except Exception as exc:
+            message = str(exc).lower()
+            if any(word in message for word in ["memory", "alloc", "cuda"]):
+                print(f"[warn] {run_id} GPU fit failed; retrying on CPU", flush=True)
+                free_gpu_memory()
+                model = build_model(
+                    model_name,
+                    params,
+                    seed,
+                    config["backend"],
+                    input_dim=search_x.shape[1],
+                    mlp_epochs=config["mlp_epochs"],
+                    mlp_batch_size=config["mlp_batch_size"],
+                    force_cpu=True,
+                )
+                model.fit(search_x, search_y)
+            else:
+                raise
         fit_time = time.perf_counter() - start
         prediction = model.predict(search_val_x)
         values = metrics(val_y, prediction, CLASSES)
@@ -117,7 +138,7 @@ def _run_one(config, label, model_name, optimizer_name, seed, search_x, search_y
             best["params"] = dict(params)
         else:
             del model
-        gc.collect()
+        free_gpu_memory()
         return values["macro_f1"]
 
     start = time.perf_counter()
@@ -170,14 +191,7 @@ def _run_one(config, label, model_name, optimizer_name, seed, search_x, search_y
     print(f"[run] {run_id} best={result.best_score:.4f} time={total_time:.1f}s", flush=True)
     del best_model
     best["model"] = None
-    gc.collect()
-    try:
-        import torch
-
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    except Exception:
-        pass
+    free_gpu_memory()
 
 
 def features_only(config):
@@ -197,6 +211,10 @@ def run(config):
     write_metadata(Path(config["results_dir"]) / "metadata.json", config)
     eval_path = Path(config["results_dir"]) / "evaluations.csv"
     run_path = Path(config["results_dir"]) / "runs.csv"
+    existing = set()
+    if run_path.exists():
+        with open(run_path, "r", newline="") as handle:
+            existing = {row["run_id"] for row in csv.DictReader(handle)}
 
     for feature in config["features"]:
         feature = _feature_config(feature)
@@ -213,6 +231,9 @@ def run(config):
                 continue
             for optimizer_name in config["optimizers"]:
                 for seed in config["seeds"]:
+                    run_id = f"{label}__{model_name}__{optimizer_name}__{seed}"
+                    if run_id in existing:
+                        continue
                     _run_one(
                         config,
                         label,

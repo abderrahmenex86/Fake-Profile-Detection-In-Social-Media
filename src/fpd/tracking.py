@@ -1,4 +1,5 @@
 import csv
+import gc
 import os
 import tempfile
 import time
@@ -54,6 +55,24 @@ def reset_torch_peak():
             torch.cuda.reset_peak_memory_stats()
     except Exception:
         return
+
+
+def free_gpu_memory():
+    try:
+        import cupy as cp
+
+        cp.get_default_memory_pool().free_all_blocks()
+        cp.get_default_pinned_memory_pool().free_all_blocks()
+    except Exception:
+        pass
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+    gc.collect()
 
 
 def model_size_mb(model):

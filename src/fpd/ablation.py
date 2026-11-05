@@ -1,4 +1,3 @@
-import gc
 import json
 import time
 from pathlib import Path
@@ -13,6 +12,7 @@ from .features import _hog, _read, cache_path, fit_preprocessor, transform_prepr
 from .models import build_model
 from .tracking import (
     append_row,
+    free_gpu_memory,
     gpu_used_mb,
     inference_ms,
     metrics,
@@ -114,12 +114,14 @@ def run(config):
             else:
                 params = {"n_estimators": 200, "max_depth": 10, "max_features": "sqrt"}
             for seed in config["seeds"]:
+                free_gpu_memory()
                 model = build_model(
                     model_name,
                     params,
                     seed,
                     config["backend"],
                     input_dim=train_scaled.shape[1],
+                    force_cpu=model_name == "xgb",
                 )
                 start = time.perf_counter()
                 model.fit(train_scaled, train_y[indices])
@@ -152,4 +154,4 @@ def run(config):
                     flush=True,
                 )
                 del model
-                gc.collect()
+                free_gpu_memory()

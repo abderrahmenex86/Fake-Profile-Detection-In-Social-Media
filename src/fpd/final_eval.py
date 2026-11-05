@@ -1,4 +1,3 @@
-import gc
 import json
 import time
 from pathlib import Path
@@ -13,6 +12,7 @@ from .features import fit_preprocessor, transform_preprocessor
 from .models import build_model
 from .tracking import (
     append_row,
+    free_gpu_memory,
     gpu_used_mb,
     inference_ms,
     metrics,
@@ -59,6 +59,7 @@ def run(config):
             best = subset.sort_values("best_val_macro_f1", ascending=False).iloc[0]
             params = json.loads(best["best_params"])
             reset_torch_peak()
+            free_gpu_memory()
             model = build_model(
                 model_name,
                 params,
@@ -69,7 +70,26 @@ def run(config):
                 mlp_batch_size=config["mlp_batch_size"],
             )
             start = time.perf_counter()
-            model.fit(full_scaled, full_y)
+            try:
+                model.fit(full_scaled, full_y)
+            except Exception as exc:
+                message = str(exc).lower()
+                if any(word in message for word in ["memory", "alloc", "cuda"]):
+                    print(f"[warn] {label}/{model_name} final fit failed; retrying on CPU", flush=True)
+                    free_gpu_memory()
+                    model = build_model(
+                        model_name,
+                        params,
+                        best["seed"],
+                        config["backend"],
+                        input_dim=full_scaled.shape[1],
+                        mlp_epochs=config["mlp_epochs"],
+                        mlp_batch_size=config["mlp_batch_size"],
+                        force_cpu=True,
+                    )
+                    model.fit(full_scaled, full_y)
+                else:
+                    raise
             train_time = time.perf_counter() - start
             values = metrics(test_y, model.predict(test_scaled), CLASSES)
             inference_1, inference_32 = inference_ms(model, test_scaled)
@@ -102,11 +122,4 @@ def run(config):
                 flush=True,
             )
             del model
-            gc.collect()
-            try:
-                import torch
-
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-            except Exception:
-                pass
+            free_gpu_memory()

@@ -74,8 +74,8 @@ class MLPModel:
             return torch.softmax(logits, dim=1).cpu().numpy()
 
 
-def build_model(name, params, seed, backend, input_dim=None, mlp_epochs=30, mlp_batch_size=128):
-    use_gpu = backend == "gpu"
+def build_model(name, params, seed, backend, input_dim=None, mlp_epochs=30, mlp_batch_size=128, force_cpu=False):
+    use_gpu = backend == "gpu" and not force_cpu
     if name == "logreg":
         if use_gpu and CUML_AVAILABLE:
             return CuLogisticRegression(C=params["C"], max_iter=2000)
@@ -121,6 +121,7 @@ def build_model(name, params, seed, backend, input_dim=None, mlp_epochs=30, mlp_
             subsample=params["subsample"],
             colsample_bytree=params["colsample_bytree"],
             tree_method="hist",
+            max_bin=64,
             device="cuda" if use_gpu else "cpu",
             n_jobs=-1,
             random_state=seed,

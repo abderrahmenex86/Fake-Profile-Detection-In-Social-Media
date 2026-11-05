@@ -1,0 +1,26 @@
+{
+  "feature": "hog",
+  "image": {
+    "color_mode": "RGB",
+    "resize_height": 600,
+    "resize_width": 450,
+    "resize_interpolation": "INTER_AREA"
+  },
+  "hog": {
+    "orientations": 9,
+    "pixels_per_cell": [
+      16,
+      16
+    ],
+    "cells_per_block": [
+      2,
+      2
+    ],
+    "block_norm": "L2-Hys",
+    "feature_vector": true
+  },
+  "dimensions": 34992,
+  "scaler": "StandardScaler",
+  "pca_components": null,
+  "classifier": "xgboost.XGBClassifier"
+}

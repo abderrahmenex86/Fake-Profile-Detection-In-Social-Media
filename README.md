@@ -209,6 +209,26 @@ Masking one template region costs about **6–7 points**, but the model still re
 
 ![Template ablation](results/plots/fig_template_ablation.png)
 
+## Trained model
+
+The best configuration is exported as a portable artifact in [`models/hog_xgb`](models/hog_xgb): HOG + XGBoost, a 189 KB booster with a 0.80 MB scaler, no GPU needed.
+
+```bash
+pip install -r models/hog_xgb/requirements.txt
+python models/hog_xgb/inference.py screenshot.png
+```
+
+The exported model reaches **99.28%** test macro F1 after a CPU retrain on the 11,000 train+validation images; the GPU benchmark run reached 99.35% with the same configuration. End to end it needs about 38 ms per image on CPU: 35 ms for HOG and 3 ms for the ensemble. [`models/hog_xgb/README.md`](models/hog_xgb/README.md) is the model card.
+
+To publish it on Hugging Face:
+
+```bash
+export HF_TOKEN=hf_...        # or run `hf auth login`
+python scripts/upload_model.py --repo-id <user>/<model-name>
+```
+
+`scripts/upload_model.py` creates the model repo if needed and uploads the folder. Add `--private` for a private repo.
+
 ## Artifacts
 
 - `results/evaluations.csv` — every objective evaluation.
@@ -248,8 +268,18 @@ configs/
 docs/
 ├── benchmark.md
 └── gpu.md
+models/
+└── hog_xgb/
+    ├── README.md
+    ├── inference.py
+    └── requirements.txt
 scripts/
-└── setup_gpu.sh
+├── setup_gpu.sh
+├── export_best_model.py
+├── upload_model.py
+├── make_feature_figure.py
+├── make_sift_figure.py
+└── sift_investigation.py
 tests/
 ```
 
@@ -262,6 +292,7 @@ tests/
 - Random Forest uses `sqrt`/`log2` feature sampling, not all 35k features, to keep the high-dimensional fits tractable.
 - LCA and DGO are simplified implementations. They use the same budget and search space but are not bit-for-bit reproductions of the published algorithms.
 - GPU results depend on the RAPIDS, CUDA, and PyTorch versions recorded in `results/metadata.json`. The completed run used an RTX PRO 4000 Blackwell with RAPIDS 26.10 / CUDA 13.
+- The exported model in `models/hog_xgb` was retrained on CPU with a different XGBoost build, so it scores 0.9928 test macro F1 instead of the 0.9935 in `results/final.csv`.
 
 ## Background
 

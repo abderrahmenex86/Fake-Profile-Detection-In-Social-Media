@@ -1,0 +1,7 @@
+numpy>=1.26
+opencv-python-headless>=4.10
+scikit-image>=0.24
+scikit-learn>=1.5
+xgboost>=2.1
+joblib>=1.4
+pillow>=10.0

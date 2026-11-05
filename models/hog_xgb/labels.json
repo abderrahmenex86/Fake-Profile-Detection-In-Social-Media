@@ -1,0 +1,16 @@
+{
+  "classes": [
+    "BOT",
+    "CYBORG",
+    "REAL",
+    "VERIFIED"
+  ],
+  "class_to_index": {
+    "BOT": 0,
+    "CYBORG": 1,
+    "REAL": 2,
+    "VERIFIED": 3
+  },
+  "dataset": "drveronika/x_fake_profile_detection",
+  "revision": "28bc1fbee3aa928ab3d29d9766155a5233465216"
+}

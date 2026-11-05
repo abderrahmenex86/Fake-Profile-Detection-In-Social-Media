@@ -1,6 +1,6 @@
 PYTHON ?= python
 
-.PHONY: setup download smoke features benchmark final cnn ablation plot test lint
+.PHONY: setup download smoke features benchmark final cnn ablation plot web test lint
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -29,6 +29,9 @@ ablation:
 
 plot:
 	$(PYTHON) -m fpd.cli plot --config configs/final.yaml
+
+web:
+	$(PYTHON) -m http.server 8799 --directory web
 
 test:
 	$(PYTHON) -m pytest

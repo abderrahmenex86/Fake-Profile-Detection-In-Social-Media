@@ -229,6 +229,20 @@ python scripts/upload_model.py --repo-id <user>/<model-name>
 
 `scripts/upload_model.py` creates the model repo if needed and uploads the folder. Add `--private` for a private repo.
 
+## Browser demo
+
+![Browser demo](docs/web-demo.png)
+
+[`web/`](web) is a static site that runs the same model client-side: no server, no upload, about 54 ms per screenshot in Chromium. It reimplements the preprocessing in JavaScript (OpenCV-compatible area resize, grayscale, skimage-compatible HOG) and walks the 200 exported trees directly.
+
+On 250 held-out test images it agrees with the Python pipeline on **250/250 labels**, with a mean feature difference of 1.4e-5.
+
+```bash
+make web   # serves web/ on http://localhost:8799
+```
+
+Any static host works. [web/README.md](web/README.md) documents Cloudflare Pages, GitHub Pages, and Hugging Face static Space deployments.
+
 ## Artifacts
 
 - `results/evaluations.csv` — every objective evaluation.
@@ -273,10 +287,22 @@ models/
     ├── README.md
     ├── inference.py
     └── requirements.txt
+web/
+├── index.html
+├── styles.css
+├── app.js
+├── hog.js
+├── model.js
+├── assets/
+└── samples/
 scripts/
 ├── setup_gpu.sh
 ├── export_best_model.py
+├── export_web_model.py
 ├── upload_model.py
+├── validate_web_model.py
+├── validate_web.mjs
+├── make_web_samples.py
 ├── make_feature_figure.py
 ├── make_sift_figure.py
 └── sift_investigation.py

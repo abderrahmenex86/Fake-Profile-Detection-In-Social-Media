@@ -111,6 +111,7 @@ python scripts/export_best_model.py --data-dir ~/downloads/datasets/x_fake_profi
 - **Screenshots only.** There is no metadata, text history, follower graph, or posting behavior. It cannot detect fakes from a profile URL alone.
 - **Balanced classes.** The dataset has 25% per class. Real traffic is highly imbalanced, so precision on rare classes will be lower than these numbers.
 - **Cross-domain use is untested.** Different platform layout, language, dark mode, cropping, or compression will shift the HOG distribution. Evaluate before relying on it.
+- **Fine detail matters.** One BOT test image scores 0.999 as a 450×600 launch PNG but 0.898 CYBORG after being resized up to 600×800 and back down. HOG reads small layout details, so resampling or lossy compression can flip a confident prediction.
 - **Not a moderation decision system.** It outputs a probability over four synthetic classes; it is not evidence that an account is fake.
 
 ## Citation

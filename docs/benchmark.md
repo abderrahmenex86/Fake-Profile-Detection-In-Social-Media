@@ -151,7 +151,7 @@ HOG is decisively stronger. The benchmark’s fixed top-256 SIFT vector reaches 
 | Top 256 by response (benchmark) | 0.3265 | 0.3117 |
 | Bag of visual words, 256 clusters | 0.8566 | **0.9143** |
 
-The follow-up uses the same 2,000/1,000/4,000 split and fixed LR/XGBoost parameters. The encoding was the problem: the thesis-style first-234 vector recovers 0.6429, and BoVW reaches 0.9143, competitive with raw+PCA and far above the fixed vector. The main SIFT rows measure the fixed descriptor matrix, not SIFT’s ceiling. BoVW SIFT is still well below HOG’s 0.9935.
+The follow-up uses the same 2,000/1,000/4,000 split and fixed LR/XGBoost parameters. Compare rows within this table; the main SIFT rows use the full 11k training and TPE. The encoding was the problem: the thesis-style first-234 vector recovers 0.6429, and BoVW reaches 0.9143, competitive with raw+PCA and far above the fixed vector. The main SIFT rows measure the fixed descriptor matrix, not SIFT’s ceiling. BoVW SIFT is still well below HOG’s 0.9935.
 
 ![HOG vs SIFT](../results/plots/fig_hog_vs_sift.png)
 

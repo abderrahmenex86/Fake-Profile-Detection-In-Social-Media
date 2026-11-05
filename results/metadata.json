@@ -1,0 +1,51 @@
+{
+  "python": "3.11.18",
+  "platform": "Linux-6.8.0-147-generic-x86_64-with-glibc2.35",
+  "sklearn": "1.9.1",
+  "xgboost": "3.2.0",
+  "cv2": "5.0.0",
+  "skimage": "0.26.0",
+  "torch": "2.14.1+cu130",
+  "cuml": "26.10.00",
+  "cuda": true,
+  "gpu": "NVIDIA RTX PRO 4000 Blackwell",
+  "last_stage_config": {
+    "data_dir": "/root/downloads/datasets/x_fake_profile_detection",
+    "cache_dir": "/root/downloads/datasets/x_fake_profile_detection/features",
+    "results_dir": "results",
+    "backend": "gpu",
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "search_train_size": 2000,
+    "limit_train": 2000,
+    "limit_val": 1000,
+    "limit_test": 4000,
+    "ablation_variants": [
+      "full",
+      "header",
+      "bottom_mask",
+      "brightness"
+    ],
+    "seed": 1337,
+    "budget": 60,
+    "mlp_epochs": 30,
+    "mlp_batch_size": 128,
+    "cnn_epochs": 20,
+    "cnn_batch_size": 64,
+    "cnn_lr": 0.001,
+    "cnn_weight_decay": 0.0001
+  },
+  "protocol": {
+    "run": "2026-11-04/05",
+    "stage_a": "PCA-1000 HOG/SIFT/raw; 8 optimizers; 3 seeds; 60 evaluations",
+    "stage_b": "5 feature configs; 6 models; TPE; 3 seeds; 60 evaluations; MLP search 10 epochs",
+    "final": "best validation config per feature/model; 11k train; 4k test",
+    "cnn": "small CNN; raw images; 3 seeds; 20 epochs",
+    "ablation": "full, header crop, bottom mask, brightness baseline"
+  },
+  "code_commit": "251d22f",
+  "config_commit": "0355c43"
+}

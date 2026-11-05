@@ -98,11 +98,90 @@ fpd ablation --config configs/ablation.yaml
 fpd plot --config configs/final.yaml
 ```
 
-The recommended GPU is a 24 GB RTX 3090. A 16 GB card works for the PCA and subset configurations.
+A 24 GB GPU is recommended. A 3090 works with RAPIDS 24.10; a Blackwell GPU needs RAPIDS 26.10 / CUDA 13. See [docs/gpu.md](docs/gpu.md).
 
 ## Results
 
-The benchmark writes:
+All numbers below are on the official 4,000-image test split. Final models were selected by validation macro F1 and retrained on the 11,000 train+validation images.
+
+### Best models
+
+| Feature | Model | Test accuracy | Test macro F1 | Train time | Inference | Model size |
+|---|---|---:|---:|---:|---:|---:|
+| HOG no-PCA | XGBoost | **99.35%** | **99.35%** | 8.8s | 0.91 ms | 0.19 MB |
+| HOG no-PCA | Random Forest | 99.28% | 99.28% | 11.0s | 0.20 ms | 1.06 MB |
+| HOG no-PCA | Linear SVM | 98.53% | 98.53% | 111s | 3.88 ms | 272 MB |
+| HOG + PCA | Linear SVM | 98.15% | 98.15% | 0.2s | 2.94 ms | 4.15 MB |
+| HOG no-PCA | Logistic Regression | 97.75% | 97.73% | 7.5s | 0.23 ms | 0.53 MB |
+| HOG + PCA | Logistic Regression | 97.73% | 97.71% | 0.2s | 0.20 ms | 0.02 MB |
+| HOG + PCA | XGBoost | 97.25% | 97.26% | 0.7s | 2.00 ms | 0.79 MB |
+| HOG no-PCA | MLP | 95.95% | 95.95% | 7.0s | 0.10 ms | 17.1 MB |
+| HOG + PCA | RBF SVM | 95.83% | 95.83% | 0.2s | 3.21 ms | 7.4 MB |
+
+![Final test macro F1](results/plots/fig_final_heatmap.png)
+
+### Best per feature
+
+| Feature | Best test macro F1 | Model |
+|---|---:|---|
+| HOG no-PCA | **0.9935** | XGBoost |
+| HOG + PCA | 0.9815 | Linear SVM |
+| raw + PCA | 0.8596 | Logistic Regression |
+| SIFT no-PCA | 0.4027 | XGBoost |
+| SIFT + PCA | 0.3373 | Linear SVM |
+
+### CNN
+
+| Metric | Value |
+|---|---:|
+| Test macro F1 | **98.07% ± 0.44** (3 seeds) |
+| Parameters | 94,212 |
+| Model size | 0.37 MB |
+| Training time | ~20.9 min per seed |
+| Inference batch 1 | 0.21 ms |
+
+The CNN is competitive with HOG + XGBoost but about **1.3 points less accurate** and roughly **140× more expensive to train**. HOG + XGBoost is 99.35% at 8.8s.
+
+### Optimizers
+
+Stage A mean best validation macro F1:
+
+| Optimizer | Mean | Std | Best | Evals to 95% |
+|---|---:|---:|---:|---:|
+| TPE | 0.7541 | 0.2988 | 0.9970 | 2.94 |
+| PSO | 0.7530 | 0.2980 | 0.9970 | 2.17 |
+| LCA | 0.7527 | 0.2974 | 0.9970 | 3.56 |
+| Random Search | 0.7525 | 0.2992 | 0.9970 | 1.50 |
+| GA | 0.7515 | 0.2980 | 0.9970 | 2.11 |
+| DGO | 0.7514 | 0.2989 | 0.9970 | 1.89 |
+| TOW | 0.7505 | 0.2987 | 0.9970 | **1.39** |
+| SA | 0.7496 | 0.2963 | 0.9970 | 2.44 |
+
+No optimizer clearly wins. The spread between optimizers is under **0.5 points**, while the spread across feature/model configurations is about **30 points**. TOW reaches 95% of its best score fastest, but its final mean is slightly lower than TPE/PSO/LCA. The game-based optimizers are competitive, not superior.
+
+### PCA and feature effects
+
+- HOG → HOG + PCA: 99.35% → 98.15% test macro F1. PCA costs about 1.2 points but trains in 0.2s instead of 8.8s.
+- SIFT → SIFT + PCA: 40.27% → 33.73%. PCA hurts SIFT.
+- raw + PCA: 85.96% best (Logistic Regression / Linear SVM); Random Forest and RBF SVM underperform at 52%/48%.
+
+![HOG vs SIFT](results/plots/fig_hog_vs_sift.png)
+
+### Template ablation
+
+| Variant | Test macro F1 |
+|---|---:|
+| Full screenshot | **98.59%** |
+| Header/avatar crop | 91.70% |
+| Bottom masked | 92.54% |
+| Brightness/edge + LR | 51.62% |
+| Brightness/edge + RF | 57.17% |
+
+Masking one template region costs about **6–7 points**, but the model still reaches ~92%. The profile template matters, but it is not the whole signal. Trivial brightness/edge statistics are near chance.
+
+![Template ablation](results/plots/fig_template_ablation.png)
+
+## Artifacts
 
 - `results/evaluations.csv` — every objective evaluation.
 - `results/runs.csv` — every optimizer/seed run.
@@ -148,11 +227,13 @@ tests/
 
 ## Limitations
 
-- The dataset is synthetic. Profile layout, text, badges, and template cues are highly correlated with the label. The benchmark includes a template ablation to measure this.
-- Three seeds and no formal statistical tests mean small differences should not be over-interpreted.
+- The dataset is synthetic. Profile layout, text, badges, and template cues are highly correlated with the label. The template ablation shows a 6–7 point drop when one region is masked, but the model still reaches ~92%, so the template is not the whole signal.
+- SIFT is weak in this benchmark: 40.27% test macro F1 without PCA and 33.73% with PCA. This is far below the thesis’s SIFT numbers. The likely cause is the fixed top-256 descriptor representation; treat SIFT as an open issue, not a general conclusion about SIFT.
+- No optimizer clearly wins. The spread between optimizers is under 0.5 points, while the spread across feature/model configurations is about 30 points. Three seeds and no formal tests mean small differences should not be over-interpreted.
+- Stage A uses PCA-1,000 features to keep the eight-optimizer comparison tractable; no-PCA comparisons are in Stage B. Stage B uses three seeds; the MLP search uses 10 epochs while the final MLP uses 30.
+- Random Forest uses `sqrt`/`log2` feature sampling, not all 35k features, to keep the high-dimensional fits tractable.
 - LCA and DGO are simplified implementations. They use the same budget and search space but are not bit-for-bit reproductions of the published algorithms.
-- SIFT is represented by a fixed top-256 descriptor matrix. A bag-of-visual-words representation would be a different comparison.
-- GPU results depend on the RAPIDS, CUDA, and PyTorch versions recorded in `results/metadata.json`.
+- GPU results depend on the RAPIDS, CUDA, and PyTorch versions recorded in `results/metadata.json`. The completed run used an RTX PRO 4000 Blackwell with RAPIDS 26.10 / CUDA 13.
 
 ## Background
 

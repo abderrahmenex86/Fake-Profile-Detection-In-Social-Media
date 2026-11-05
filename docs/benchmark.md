@@ -4,7 +4,7 @@
 
 This report evaluates image-based fake-profile detection on the X profile dataset. It compares HOG and SIFT features, PCA and no PCA, classical and GPU-accelerated classifiers, a small MLP, a small CNN, and eight hyperparameter optimizers under an equal evaluation budget. The protocol uses the official dataset splits, train-only preprocessing, and a single held-out test evaluation per final model.
 
-HOG no-PCA with XGBoost reaches **99.35% test macro F1** at 8.8s train time and 0.19 MB. SIFT is far weaker (40.27% no-PCA, 33.73% with PCA). No optimizer clearly wins. The small CNN reaches 98.07% ± 0.44 at roughly 140× the training cost of HOG + XGBoost.
+HOG no-PCA with XGBoost reaches **99.35% test macro F1** at 8.8s train time and 0.19 MB. The fixed SIFT vector is far weaker (40.27% no-PCA, 33.73% with PCA); a follow-up shows BoVW SIFT reaches 91.43%. No optimizer clearly wins. The small CNN reaches 98.07% ± 0.44 at roughly 140× the training cost of HOG + XGBoost.
 
 ## 1. Introduction
 
@@ -141,9 +141,21 @@ The game-based optimizers are competitive, not superior. This does not reproduce
 | SIFT no-PCA | 0.4027 | XGBoost |
 | SIFT + PCA | 0.3373 | Linear SVM |
 
-HOG is decisively stronger. SIFT is weak in this benchmark: 0.4027 without PCA and 0.3373 with PCA. This is far below the thesis’s SIFT numbers (roughly 0.62–0.74). The SIFT result is therefore treated as an open issue. The likely cause is the fixed top-256 descriptor representation; a bag-of-visual-words or Fisher-vector encoding would be the next check.
+HOG is decisively stronger. The benchmark’s fixed top-256 SIFT vector reaches 0.4027 without PCA and 0.3373 with PCA. This is far below the thesis’s SIFT numbers (roughly 0.62–0.74), so a follow-up tested the encoding.
+
+#### SIFT representation follow-up
+
+| SIFT encoding | Logistic Regression test macro F1 | XGBoost test macro F1 |
+|---|---:|---:|
+| First 234 descriptors (thesis style) | 0.6062 | 0.6429 |
+| Top 256 by response (benchmark) | 0.3265 | 0.3117 |
+| Bag of visual words, 256 clusters | 0.8566 | **0.9143** |
+
+The follow-up uses the same 2,000/1,000/4,000 split and fixed LR/XGBoost parameters. The encoding was the problem: the thesis-style first-234 vector recovers 0.6429, and BoVW reaches 0.9143, competitive with raw+PCA and far above the fixed vector. The main SIFT rows measure the fixed descriptor matrix, not SIFT’s ceiling. BoVW SIFT is still well below HOG’s 0.9935.
 
 ![HOG vs SIFT](../results/plots/fig_hog_vs_sift.png)
+
+![SIFT investigation](../results/plots/fig_sift_investigation.png)
 
 ### 8.3 PCA vs no PCA
 
@@ -257,7 +269,7 @@ The model makes 26 errors out of 4,000. The remaining errors are CYBORG→REAL a
 - Random Forest uses `sqrt`/`log2` feature sampling, not all 35k features, to keep the Stage B runtime tractable.
 - Stage A uses PCA-1,000 features; full no-PCA optimizer comparisons are not included. This keeps the eight-optimizer matrix within the runtime budget.
 - LCA and DGO are simplified implementations.
-- SIFT is represented by a fixed top-256 descriptor matrix, not a bag-of-visual-words or Fisher-vector encoding. The SIFT test result (0.4027 no-PCA, 0.3373 PCA) is far below the thesis’s SIFT numbers and should be investigated before drawing conclusions about SIFT itself.
+- SIFT is represented by a fixed top-256 descriptor matrix in the main benchmark. A controlled follow-up reaches 0.6429 with first-234 and 0.9143 with BoVW-256; the main SIFT rows are a representation limitation, not SIFT’s ceiling.
 - The completed run used an RTX PRO 4000 Blackwell with RAPIDS 26.10 / CUDA 13. XGBoost on 32k-dimensional no-PCA features can exceed 24 GB of VRAM; the pipeline frees the CuPy pools, uses `max_bin=64`, and falls back to CPU if a fit still runs out of memory.
 - GPU results depend on the RAPIDS, CUDA, and PyTorch versions recorded in `results/metadata.json`.
 - The final model is selected by validation macro F1 across optimizers and seeds. This selection can be optimistic on the test split.
@@ -266,7 +278,7 @@ The model makes 26 errors out of 4,000. The remaining errors are CYBORG→REAL a
 
 No game-based optimizer beat the strongest classical baselines. TPE and PSO have the highest Stage A means, with LCA third; the spread between all eight optimizers is under 0.5 points. TOW reaches 95% of its best score in the fewest evaluations (1.39), yet its final mean is slightly lower than TPE’s. The optimizer choice is not the dominant factor in this benchmark.
 
-HOG is decisively stronger than SIFT. HOG no-PCA reaches 0.9935 test macro F1 with XGBoost; SIFT no-PCA reaches 0.4027. With PCA, HOG is 0.9815 and SIFT is 0.3373. The SIFT result is far below the thesis’s SIFT numbers and is treated as an open issue; the fixed top-256 descriptor representation is the likely cause.
+HOG is decisively stronger than the benchmark’s fixed SIFT vector. HOG no-PCA reaches 0.9935 test macro F1 with XGBoost; SIFT no-PCA reaches 0.4027. With PCA, HOG is 0.9815 and SIFT is 0.3373. A follow-up shows the representation was the problem: first-234 SIFT reaches 0.6429 and BoVW SIFT reaches 0.9143 test macro F1. SIFT is not a dead end, but even BoVW SIFT remains below HOG.
 
 PCA costs about 1.2 points on HOG and 6.5 points on SIFT. Linear models tolerate PCA; tree models lose more. HOG + PCA + Logistic Regression is the cheapest accurate model (0.9771, 0.2s, 0.016 MB), while HOG + XGBoost is the best overall (0.9935, 8.8s, 0.19 MB).
 

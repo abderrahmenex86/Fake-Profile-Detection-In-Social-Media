@@ -179,6 +179,20 @@ No optimizer clearly wins. The spread between optimizers is under **0.5 points**
 
 ![HOG vs SIFT](results/plots/fig_hog_vs_sift.png)
 
+### SIFT investigation
+
+The SIFT rows above use the benchmark’s fixed top-256-by-response vector. A controlled follow-up on the same 2,000/1,000/4,000 split with fixed Logistic Regression and XGBoost parameters shows that the encoding was the problem:
+
+| SIFT encoding | LR test macro F1 | XGBoost test macro F1 |
+|---|---:|---:|
+| First 234 descriptors (thesis style) | 0.6062 | 0.6429 |
+| Top 256 by response (benchmark) | 0.3265 | 0.3117 |
+| Bag of visual words, 256 clusters | 0.8566 | **0.9143** |
+
+BoVW SIFT reaches **0.9143** test macro F1 with XGBoost, competitive with raw+PCA and far above the fixed vector. The main SIFT row is a representation limitation, not SIFT’s ceiling.
+
+![SIFT investigation](results/plots/fig_sift_investigation.png)
+
 ### Template ablation
 
 | Variant | Test macro F1 |
@@ -240,7 +254,7 @@ tests/
 ## Limitations
 
 - The dataset is synthetic. Profile layout, text, badges, and template cues are highly correlated with the label. The template ablation shows a 6–7 point drop when one region is masked, but the model still reaches ~92%, so the template is not the whole signal.
-- SIFT is weak in this benchmark: 40.27% test macro F1 without PCA and 33.73% with PCA. This is far below the thesis’s SIFT numbers. The likely cause is the fixed top-256 descriptor representation; treat SIFT as an open issue, not a general conclusion about SIFT.
+- The main benchmark’s fixed top-256 SIFT vector is weak: 40.27% no-PCA / 33.73% PCA. A controlled follow-up reaches 64.29% with the thesis-style first-234 descriptors and **91.43%** with a 256-word BoVW. Treat the main SIFT rows as a representation limitation, not SIFT’s ceiling.
 - No optimizer clearly wins. The spread between optimizers is under 0.5 points, while the spread across feature/model configurations is about 30 points. Three seeds and no formal tests mean small differences should not be over-interpreted.
 - Stage A uses PCA-1,000 features to keep the eight-optimizer comparison tractable; no-PCA comparisons are in Stage B. Stage B uses three seeds; the MLP search uses 10 epochs while the final MLP uses 30.
 - Random Forest uses `sqrt`/`log2` feature sampling, not all 35k features, to keep the high-dimensional fits tractable.

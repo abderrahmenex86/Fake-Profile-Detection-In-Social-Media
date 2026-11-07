@@ -4,8 +4,6 @@ I built this benchmark to separate what a fake-profile classifier actually learn
 
 ![Browser demo showing a profile screenshot, its HOG gradient map, and a four-class readout](docs/web-demo.png)
 
-_The browser demo on a `REAL` sample from the 4,000-image test split: 99.1% confidence, 54 ms in Chromium. The dark panel is the HOG field the model sees. Nothing is uploaded._
-
 ## Contents
 
 - [Results](#results)
